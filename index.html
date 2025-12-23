@@ -10,7 +10,1628 @@
       --bg: #f5f7fb;
       --card: #ffffff;
       --text: #111827;
+      --muted: #6b7280;<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Array & Area Model – Multiplication</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
       --muted: #6b7280;
+
+      /* Meaning palette */
+      --rect-a: #bfdbfe; /* TL */
+      --rect-b: #f9a8d4; /* TR */
+      --rect-c: #bbf7d0; /* BL */
+      --rect-d: #ddd6fe; /* BR */
+
+      --grid-border: rgba(15, 23, 42, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #e5edff 0, #f5f7fb 40%, #f5f7fb 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1120px;
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+      padding: 24px 24px 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(520px, 1fr) 260px;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .title {
+      font-size: 1.75rem;
+      font-weight: 650;
+      margin: 0;
+    }
+
+    .reset-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: #020617;
+      color: #f9fafb;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.35);
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+      white-space: nowrap;
+    }
+    .reset-btn:hover { background: #111827; transform: translateY(-1px); }
+    .reset-btn:active { transform: translateY(0px); }
+
+    .section {
+      margin-top: 8px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+    }
+
+    /* Equation strip */
+    .equations {
+      margin-top: 4px;
+      padding: 14px 16px 12px;
+      border-radius: 16px;
+      background: #eef2ff;
+    }
+
+    .equation-top {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .big-box {
+      min-width: 70px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 2px solid;
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+      background: #ffffff;
+    }
+
+    input.big-box {
+      appearance: textfield;
+      -moz-appearance: textfield;
+      outline: none;
+    }
+    input.big-box::-webkit-outer-spin-button,
+    input.big-box::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .big-box.factor1 { border-color: #3b82f6; color: #1d4ed8; }
+    .big-box.factor2 { border-color: #fb923c; color: #c2410c; }
+    .big-box.product { border-color: #22c55e; color: #15803d; }
+
+    .big-symbol { font-size: 1.4rem; font-weight: 700; }
+
+    .equation-decomp { text-align: center; font-size: 0.98rem; margin-top: 4px; }
+    .num.red   { color: #ef4444; font-weight: 800; }
+    .num.purp  { color: #a855f7; font-weight: 800; }
+    .num.green { color: #16a34a; font-weight: 900; }
+
+    /* Array card */
+    .array-wrapper {
+      margin-top: 14px;
+      padding: 14px 18px 20px;
+      border-radius: 18px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+    }
+
+    .array-grid {
+      position: relative;
+      margin: 18px auto 0;
+      outline: none;
+    }
+
+    .array-row { display: flex; }
+
+    .array-cell {
+      border: 1px solid var(--grid-border);
+      box-sizing: border-box;
+      transition: background 0.18s ease-out, opacity 0.18s ease-out;
+    }
+
+    .partition-line {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.6);
+      pointer-events: none;
+      transition: all 0.18s ease-out;
+    }
+    .partition-line.vertical { width: 2px; }
+    .partition-line.horizontal { height: 2px; }
+    .partition-line.helper {
+      background: rgba(15, 23, 42, 0.35);
+      opacity: 0.8;
+    }
+
+    /* Handle hitboxes */
+    .handle-hit {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: transparent;
+      cursor: grab;
+      pointer-events: auto;
+      border-radius: 10px;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,0.18));
+      transition: transform 0.12s ease-out;
+      outline: none;
+    }
+    .handle-hit:hover { transform: scale(1.04); }
+    .handle-hit.dragging { cursor: grabbing; transform: scale(1.06); }
+    .handle-hit:focus-visible { box-shadow: 0 0 0 3px rgba(79,70,229,0.35); }
+
+    .handle-hit::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%,-50%);
+      width: 0;
+      height: 0;
+      border-style: solid;
+    }
+
+    .handle-v-top::after {
+      border-width: 0 8px 10px 8px;
+      border-color: transparent transparent #020617 transparent;
+      transform: translate(-50%,-55%);
+    }
+    .handle-v-bottom::after {
+      border-width: 10px 8px 0 8px;
+      border-color: #020617 transparent transparent transparent;
+      transform: translate(-50%,-45%);
+    }
+    .handle-h-left::after {
+      border-width: 8px 10px 8px 0;
+      border-color: transparent #020617 transparent transparent;
+      transform: translate(-55%,-50%);
+    }
+    .handle-h-right::after {
+      border-width: 8px 0 8px 10px;
+      border-color: transparent transparent transparent #020617;
+      transform: translate(-45%,-50%);
+    }
+
+    .edge-label,
+    .product-label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      color: #020617;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.85);
+      transition: all 0.18s ease-out;
+    }
+
+    .edge-label { font-size: 0.9rem; font-weight: 650; }
+    .product-label { font-size: 1.1rem; font-weight: 800; }
+
+    .hover-rect {
+      position: absolute;
+      border: 3px solid rgba(2, 6, 23, 0.65);
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+      pointer-events: none;
+      display: none;
+      transition: all 0.12s ease-out;
+      background: rgba(255,255,255,0.10);
+      backdrop-filter: blur(1px);
+    }
+
+    .hover-center {
+      position: absolute;
+      display: none;
+      pointer-events: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(2, 6, 23, 0.88);
+      color: #f9fafb;
+      font-size: 0.95rem;
+      font-weight: 800;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    /* "Show Grid" toggle (when OFF -> hide borders) */
+    body.grid-off .array-cell { border-color: transparent !important; }
+    body.grid-off .array-wrapper { background: #ffffff; }
+    body.grid-off .partition-line.helper { opacity: 0.55; }
+
+    /* Dimensions overlay (overall array) */
+    .dim-layer { position: absolute; inset: 0; pointer-events: none; }
+    .dim-h, .dim-v { position: absolute; pointer-events: none; }
+
+    .dim-h {
+      left: 0;
+      top: calc(100% + 26px);
+      height: 0;
+      border-top: 4px solid #2563eb; /* blue */
+    }
+    .dim-h::before, .dim-h::after {
+      content: "";
+      position: absolute;
+      top: -10px;
+      width: 0; height: 0;
+      border-style: solid;
+    }
+    .dim-h::before {
+      left: -2px;
+      border-width: 8px 12px 8px 0;
+      border-color: transparent #2563eb transparent transparent;
+    }
+    .dim-h::after {
+      right: -2px;
+      border-width: 8px 0 8px 12px;
+      border-color: transparent transparent transparent #2563eb;
+    }
+
+    .dim-v {
+      top: 0;
+      left: calc(100% + 26px);
+      width: 0;
+      border-left: 4px solid #ef4444; /* red */
+    }
+    .dim-v::before, .dim-v::after {
+      content: "";
+      position: absolute;
+      left: -10px;
+      width: 0; height: 0;
+      border-style: solid;
+    }
+    .dim-v::before {
+      top: -2px;
+      border-width: 0 8px 12px 8px;
+      border-color: transparent transparent #ef4444 transparent;
+    }
+    .dim-v::after {
+      bottom: -2px;
+      border-width: 12px 8px 0 8px;
+      border-color: #ef4444 transparent transparent transparent;
+    }
+
+    .dim-pill {
+      position: absolute;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-weight: 900;
+      font-size: 1.05rem;
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+      line-height: 1;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
+    }
+    .dim-pill.blue { color: #1d4ed8; border: 2px solid rgba(37,99,235,0.35); }
+    .dim-pill.red  { color: #b91c1c; border: 2px solid rgba(239,68,68,0.35); }
+
+    /* Control panel */
+    .panel {
+      border-radius: 18px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      padding: 14px;
+      position: sticky;
+      top: 16px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    }
+    @media (max-width: 980px) {
+      .panel { position: relative; top: 0; }
+    }
+
+    .panel-title {
+      font-weight: 800;
+      color: #111827;
+      margin: 2px 2px 10px;
+      font-size: 0.95rem;
+    }
+
+    .panel-btn {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid #cbd5f5;
+      padding: 12px 12px;
+      font-size: 0.95rem;
+      background: #e5e7ff;
+      color: #1e293b;
+      cursor: pointer;
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out, background 0.18s ease-out, color 0.18s ease-out;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .panel-btn:hover {
+      background: #4f46e5;
+      color: #f9fafb;
+      border-color: #4f46e5;
+      transform: translateY(-1px);
+    }
+    .panel-btn:active { transform: translateY(0px); }
+    .panel-btn.active {
+      background: #111827;
+      color: #f9fafb;
+      border-color: #111827;
+    }
+
+    .panel-divider {
+      border-top: 1px dashed #e5e7eb;
+      margin: 10px 0 10px;
+    }
+
+    .panel-small {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid #cbd5f5;
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      background: #ffffff;
+      color: #1e293b;
+      cursor: pointer;
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out, background 0.18s ease-out, color 0.18s ease-out;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      font-weight: 800;
+    }
+    .panel-small:hover {
+      background: #4f46e5;
+      color: #f9fafb;
+      border-color: #4f46e5;
+      transform: translateY(-1px);
+    }
+
+    /* Full-screen overlay */
+    .fs-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.86);
+      display: none;
+      z-index: 2500;
+    }
+
+    .fs-inner {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .fs-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: #e5e7eb;
+      flex-wrap: wrap; /* prevents collision on small widths */
+    }
+    .fs-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+    .fs-title { font-size: 1rem; font-weight: 800; }
+
+    /* Full-screen equation pill (blue/red factors) */
+    .fs-equation{
+      display:none;
+      align-items:center;
+      gap:10px;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      color:#e5e7eb;
+      font-weight:900;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.18);
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .fs-equation .a{ color:#60a5fa; } /* blue */
+    .fs-equation .b{ color:#f87171; } /* red */
+    .fs-equation .p{ color:#4ade80; } /* green */
+
+    .fs-close-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      background: #f9fafb;
+      color: #020617;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.18);
+      white-space: nowrap;
+    }
+
+    /* Fullscreen content area: array left + panel right */
+    .fs-content {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 12px;
+      min-height: 0;
+    }
+    @media (max-width: 980px) {
+      .fs-content { grid-template-columns: 1fr; }
+    }
+
+    .fs-array-container {
+      background: #f9fafb;
+      border-radius: 14px;
+      padding: 70px 56px 70px 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 260px;
+      min-height: 260px;
+      overflow: hidden;
+    }
+
+    .panel.fs-panel {
+      position: relative;
+      top: 0;
+      background: rgba(249,250,251,0.98);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.22);
+    }
+
+    @media (max-width: 640px) {
+      .title { font-size: 1.45rem; }
+      .big-box { min-width: 60px; font-size: 1.2rem; }
+      .fs-array-container { padding: 62px 40px 62px 48px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <div class="top-row">
+      <h1 class="title">Array & Area Model</h1>
+      <button id="resetBtn" class="reset-btn" type="button">Reset</button>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT: main content -->
+      <div>
+        <div class="section">
+          <div class="equations">
+            <div class="equation-top">
+              <input id="factor1Box" class="big-box factor1" type="number" min="0" max="100" value="12" />
+              <div class="big-symbol">×</div>
+              <input id="factor2Box" class="big-box factor2" type="number" min="0" max="100" value="8" />
+              <div class="big-symbol">=</div>
+              <div id="productBox" class="big-box product">96</div>
+            </div>
+
+            <div id="decompText" class="equation-decomp"></div>
+          </div>
+
+          <div id="arrayWrapper" class="array-wrapper">
+            <div id="arrayGrid" class="array-grid" tabindex="-1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: control panel -->
+      <aside class="panel" aria-label="Control panel">
+        <div class="panel-title">Control panel</div>
+
+        <button id="fullscreenBtn" class="panel-btn" type="button">Full screen</button>
+        <button id="gridBtn" class="panel-btn" type="button">Show Grid</button>
+        <button id="totalsBtn" class="panel-btn" type="button">Show Totals</button>
+        <button id="dimensionsBtn" class="panel-btn" type="button">Show dimensions</button>
+        <button id="repAllBtn" class="panel-btn" type="button">Replicate Blue</button>
+
+        <div class="panel-divider"></div>
+        <button id="tensBtn" class="panel-small" type="button">Partition by tens</button>
+      </aside>
+    </div>
+  </div>
+
+  <!-- FULL SCREEN -->
+  <div id="fsOverlay" class="fs-overlay">
+    <div class="fs-inner">
+      <div class="fs-top-row">
+        <div class="fs-left">
+          <div class="fs-title">Full screen view</div>
+          <div id="fsEquation" class="fs-equation" aria-label="Equation"></div>
+        </div>
+        <button id="fsClose" class="fs-close-btn" type="button">Exit full screen</button>
+      </div>
+
+      <div class="fs-content">
+        <div id="fsArrayContainer" class="fs-array-container"></div>
+
+        <aside class="panel fs-panel" aria-label="Control panel (full screen)">
+          <div class="panel-title">Control panel</div>
+
+          <button id="fsGridBtn" class="panel-btn" type="button">Show Grid</button>
+          <button id="fsTotalsBtn" class="panel-btn" type="button">Show Totals</button>
+          <button id="fsDimensionsBtn" class="panel-btn" type="button">Show dimensions</button>
+          <button id="fsRepBtn" class="panel-btn" type="button">Replicate Blue</button>
+
+          <div class="panel-divider"></div>
+          <button id="fsTensBtn" class="panel-small" type="button">Partition by tens</button>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const arrayGrid   = document.getElementById('arrayGrid');
+    const arrayWrapper= document.getElementById('arrayWrapper');
+    const factor1Box  = document.getElementById('factor1Box');
+    const factor2Box  = document.getElementById('factor2Box');
+    const productBox  = document.getElementById('productBox');
+    const decompText  = document.getElementById('decompText');
+    const resetBtn    = document.getElementById('resetBtn');
+
+    // panel buttons
+    const repAllBtn   = document.getElementById('repAllBtn');
+    const gridBtn     = document.getElementById('gridBtn');
+    const totalsBtn   = document.getElementById('totalsBtn');
+    const dimensionsBtn = document.getElementById('dimensionsBtn');
+    const tensBtn     = document.getElementById('tensBtn');
+
+    const fullscreenBtn    = document.getElementById('fullscreenBtn');
+    const fsOverlay        = document.getElementById('fsOverlay');
+    const fsArrayContainer = document.getElementById('fsArrayContainer');
+    const fsClose          = document.getElementById('fsClose');
+
+    // fullscreen panel buttons
+    const fsGridBtn   = document.getElementById('fsGridBtn');
+    const fsTotalsBtn = document.getElementById('fsTotalsBtn');
+    const fsDimensionsBtn = document.getElementById('fsDimensionsBtn');
+    const fsRepBtn    = document.getElementById('fsRepBtn');
+    const fsTensBtn   = document.getElementById('fsTensBtn');
+
+    // full screen equation
+    const fsEquation  = document.getElementById('fsEquation');
+
+    const normalArrayParent = arrayWrapper;
+
+    const REP_OFF_TEXT = 'Replicate Blue';
+    const REP_ON_TEXT  = 'Replicate Blue ✓';
+
+    let base   = 12;
+    let groups = 8;
+
+    let vSplit = 0;
+    let hSplit = 0;
+
+    let dragging = null;
+
+    // replicate mode
+    let replicateAll = false;
+    let replicateRight = false;
+    let replicateDown  = false;
+    let replicateRightStep = 0;
+    let replicateDownStep  = 0;
+
+    let hideArray = false;
+    let inFullscreen = false;
+
+    // "Show Grid" default ON
+    let showGrid = true;
+
+    // Totals (product labels) default OFF
+    let showTotals = false;
+
+    // Dimensions arrows default OFF
+    let showDimensions = false;
+
+    // Track if user has manually dragged each axis
+    let userDraggedV = false;
+    let userDraggedH = false;
+
+    // One-step undo for splits
+    let undoState = { v: 0, h: 0 };
+
+    // Partition-by-tens toggle:
+    // 1 = grouped chunks look (10s on both axes)
+    // 2 = standard tens split
+    let tensToggleState = 2;
+
+    // Hover highlight
+    const hoverRect = document.createElement('div');
+    hoverRect.className = 'hover-rect';
+
+    const hoverCenter = document.createElement('div');
+    hoverCenter.className = 'hover-center';
+
+    // Dimensions overlay elements
+    const dimLayer = document.createElement('div');
+    dimLayer.className = 'dim-layer';
+
+    const dimH = document.createElement('div');
+    dimH.className = 'dim-h';
+
+    const dimV = document.createElement('div');
+    dimV.className = 'dim-v';
+
+    const dimHPill = document.createElement('div');
+    dimHPill.className = 'dim-pill blue';
+
+    const dimVPill = document.createElement('div');
+    dimVPill.className = 'dim-pill red';
+
+    dimLayer.appendChild(dimH);
+    dimLayer.appendChild(dimV);
+    dimLayer.appendChild(dimHPill);
+    dimLayer.appendChild(dimVPill);
+
+    arrayGrid.appendChild(hoverRect);
+    arrayGrid.appendChild(hoverCenter);
+    arrayGrid.appendChild(dimLayer);
+
+    // Cached geometry for hover math
+    let lastXSeg = [1], lastYSeg = [1];
+    let lastXPref = [0, 1], lastYPref = [0, 1];
+    let lastCellSize = 20;
+
+    let lastHiddenProductLabel = null;
+
+    function clamp(val, min, max) {
+      return Math.min(max, Math.max(min, val));
+    }
+
+    function computeHideFlag() {
+      const r1 = factor1Box.value.trim();
+      const r2 = factor2Box.value.trim();
+      const n1 = parseInt(r1, 10);
+      const n2 = parseInt(r2, 10);
+
+      if (r1 === '' && r2 === '') return true;
+      if ((!Number.isNaN(n1) && n1 === 0) || (!Number.isNaN(n2) && n2 === 0)) return true;
+
+      const invalid1 = !r1 || Number.isNaN(n1) || n1 <= 0;
+      const invalid2 = !r2 || Number.isNaN(n2) || n2 <= 0;
+
+      return invalid1 && invalid2;
+    }
+
+    function hasValidFactors() {
+      return !hideArray && base > 0 && groups > 0;
+    }
+
+    function hardClampInputTo100(inputEl) {
+      const raw = inputEl.value.trim();
+      if (raw === '') return null;
+      let n = parseInt(raw, 10);
+      if (Number.isNaN(n)) return null;
+      n = clamp(n, 0, 100);
+      if (String(n) !== raw) inputEl.value = String(n);
+      return n;
+    }
+
+    function storeUndoPoint() {
+      undoState = { v: vSplit, h: hSplit };
+    }
+
+    function undoSplit() {
+      const changed = (vSplit !== undoState.v) || (hSplit !== undoState.h);
+      if (!changed) return;
+      vSplit = undoState.v;
+      hSplit = undoState.h;
+      renderArray();
+    }
+
+    function applyGridClass() {
+      document.body.classList.toggle('grid-off', !showGrid);
+    }
+
+    function updateFsEquation() {
+      if (!fsEquation) return;
+      if (!inFullscreen || !hasValidFactors()) {
+        fsEquation.style.display = 'none';
+        return;
+      }
+      fsEquation.style.display = 'flex';
+      const prod = base * groups;
+      fsEquation.innerHTML =
+        `<span class="a">${base}</span> × <span class="b">${groups}</span> = <span class="p">${prod}</span>`;
+    }
+
+    function updateControlUI() {
+      // replicate
+      repAllBtn.classList.toggle('active', replicateAll);
+      repAllBtn.textContent = replicateAll ? REP_ON_TEXT : REP_OFF_TEXT;
+
+      fsRepBtn.classList.toggle('active', replicateAll);
+      fsRepBtn.textContent = replicateAll ? REP_ON_TEXT : REP_OFF_TEXT;
+
+      // show grid
+      gridBtn.classList.toggle('active', showGrid);
+      gridBtn.textContent = showGrid ? 'Show Grid ✓' : 'Show Grid';
+
+      fsGridBtn.classList.toggle('active', showGrid);
+      fsGridBtn.textContent = showGrid ? 'Show Grid ✓' : 'Show Grid';
+
+      // totals
+      totalsBtn.classList.toggle('active', showTotals);
+      totalsBtn.textContent = showTotals ? 'Show Totals ✓' : 'Show Totals';
+
+      fsTotalsBtn.classList.toggle('active', showTotals);
+      fsTotalsBtn.textContent = showTotals ? 'Show Totals ✓' : 'Show Totals';
+
+      // dimensions
+      dimensionsBtn.classList.toggle('active', showDimensions);
+      dimensionsBtn.textContent = showDimensions ? 'Show dimensions ✓' : 'Show dimensions';
+
+      fsDimensionsBtn.classList.toggle('active', showDimensions);
+      fsDimensionsBtn.textContent = showDimensions ? 'Show dimensions ✓' : 'Show dimensions';
+
+      // show/hide Partition by tens (both panels)
+      const canTens = hasValidFactors() && (
+        (Math.floor(base / 10) * 10 >= 10 && Math.floor(base / 10) * 10 < base) ||
+        (Math.floor(groups / 10) * 10 >= 10 && Math.floor(groups / 10) * 10 < groups) ||
+        (base >= 20) || (groups >= 20)
+      );
+      tensBtn.style.display = canTens ? '' : 'none';
+      fsTensBtn.style.display = canTens ? '' : 'none';
+    }
+
+    function prefixSums(segments) {
+      const ps = [0];
+      for (let i = 0; i < segments.length; i++) ps.push(ps[i] + segments[i]);
+      return ps;
+    }
+
+    function buildSegments(total, split, useRep, repStep) {
+      if (total <= 0) return [total];
+
+      const hasSplit = split > 0 && split < total;
+      if (!hasSplit) return [total];
+
+      if (!useRep || repStep <= 0) {
+        return [split, total - split];
+      }
+
+      const seg = split;
+      const maxFullGroups = Math.floor(total / seg);
+      const active = clamp(repStep, 1, maxFullGroups);
+
+      const segments = [];
+      for (let i = 0; i < active; i++) segments.push(seg);
+
+      const remainder = total - seg * active;
+      if (remainder > 0) segments.push(remainder);
+
+      return segments;
+    }
+
+    function getPaletteForAreas(areasDescSorted) {
+      const palette = ['var(--rect-a)', 'var(--rect-b)', 'var(--rect-c)', 'var(--rect-d)'];
+      const map = new Map();
+      areasDescSorted.forEach((a, idx) => map.set(a, palette[idx % palette.length]));
+      return map;
+    }
+
+    function syncReplicateToMax() {
+      if (!replicateAll || !hasValidFactors()) {
+        replicateRight = false;
+        replicateDown  = false;
+        replicateRightStep = 0;
+        replicateDownStep  = 0;
+        return;
+      }
+
+      const n = base;
+      const g = groups;
+
+      const hasV = vSplit > 0 && vSplit < n;
+      const hasH = hSplit > 0 && hSplit < g;
+
+      if (hasV && vSplit > 0) {
+        const fullGroups = Math.floor(n / vSplit);
+        replicateRight = fullGroups > 1;
+        replicateRightStep = replicateRight ? fullGroups : 0;
+      } else {
+        replicateRight = false;
+        replicateRightStep = 0;
+      }
+
+      if (hasH && hSplit > 0) {
+        const fullVGroups = Math.floor(g / hSplit);
+        replicateDown = fullVGroups > 1;
+        replicateDownStep = replicateDown ? fullVGroups : 0;
+      } else {
+        replicateDown = false;
+        replicateDownStep = 0;
+      }
+    }
+
+    function findSegmentIndex(prefix, pos) {
+      for (let i = 0; i < prefix.length - 1; i++) {
+        if (pos >= prefix[i] && pos < prefix[i + 1]) return i;
+      }
+      return prefix.length - 2;
+    }
+
+    function setGridFade(regionCount) {
+      let alpha = 0.06;
+      if (regionCount >= 12) alpha = 0.045;
+      if (regionCount >= 20) alpha = 0.035;
+      if (regionCount >= 35) alpha = 0.028;
+      if (regionCount >= 60) alpha = 0.020;
+      arrayGrid.style.setProperty('--grid-border', `rgba(15, 23, 42, ${alpha})`);
+    }
+
+    /* Auto-suggest split: 10 then 5 */
+    function suggestSplit(total) {
+      if (total >= 11) return 10;
+      if (total >= 6)  return 5;
+      return 0;
+    }
+
+    function maybeAutoSuggestSplits() {
+      if (!hasValidFactors()) return;
+
+      const sV = suggestSplit(base);
+      const sH = suggestSplit(groups);
+
+      if (!userDraggedV) {
+        if (vSplit <= 0 || vSplit >= base) {
+          vSplit = (sV > 0 && sV < base) ? sV : 0;
+        }
+      } else {
+        vSplit = clamp(vSplit, 0, base);
+        if (vSplit === base) vSplit = 0;
+      }
+
+      if (!userDraggedH) {
+        if (hSplit <= 0 || hSplit >= groups) {
+          hSplit = (sH > 0 && sH < groups) ? sH : 0;
+        }
+      } else {
+        hSplit = clamp(hSplit, 0, groups);
+        if (hSplit === groups) hSplit = 0;
+      }
+    }
+
+    /* ---------- Partition by tens (TOGGLE behaviour) --------------------- */
+    function granularChunk(total) {
+      if (total >= 11) return 10;
+      return 0;
+    }
+
+    function standardTensSplit(total) {
+      const t = Math.floor(total / 10) * 10;
+      return (t >= 10 && t < total) ? t : 0;
+    }
+
+    function partitionByTens() {
+      if (!hasValidFactors()) return;
+
+      storeUndoPoint();
+
+      // toggle: 1st click -> 10s chunking (both axes), 2nd click -> standard tens split
+      tensToggleState = (tensToggleState === 1) ? 2 : 1;
+
+      if (tensToggleState === 1) {
+        const v = granularChunk(base);
+        const h = granularChunk(groups);
+
+        vSplit = (v > 0 && v < base) ? v : 0;
+        hSplit = (h > 0 && h < groups) ? h : 0;
+
+        replicateAll = true; // ensure repeated equal-groups look
+      } else {
+        vSplit = standardTensSplit(base);
+        hSplit = standardTensSplit(groups);
+      }
+
+      userDraggedV = true;
+      userDraggedH = true;
+
+      updateControlUI();
+      renderArray();
+    }
+
+    function renderDimensions(width, height) {
+      if (!showDimensions || !hasValidFactors()) {
+        dimLayer.style.display = 'none';
+        return;
+      }
+      dimLayer.style.display = 'block';
+
+      dimH.style.width = width + 'px';
+      dimV.style.height = height + 'px';
+
+      dimHPill.textContent = String(base);
+      dimVPill.textContent = String(groups);
+
+      dimHPill.style.left = (width / 2) + 'px';
+      dimHPill.style.top  = (height + 26) + 'px';
+
+      dimVPill.style.left = (width + 26) + 'px';
+      dimVPill.style.top  = (height / 2) + 'px';
+    }
+
+    /* ---------- Render ---------- */
+    function renderArray() {
+      arrayGrid.innerHTML = '';
+      arrayGrid.appendChild(hoverRect);
+      arrayGrid.appendChild(hoverCenter);
+      arrayGrid.appendChild(dimLayer);
+
+      if (!hasValidFactors()) {
+        productBox.textContent = '';
+        decompText.innerHTML = '';
+        hideHover();
+        updateControlUI();
+        dimLayer.style.display = 'none';
+        updateFsEquation();
+        return;
+      }
+
+      syncReplicateToMax();
+
+      const n = base;
+      const g = groups;
+
+      const hasV = vSplit > 0 && vSplit < n;
+      const hasH = hSplit > 0 && hSplit < g;
+
+      const useRight = replicateRight && replicateRightStep > 0 && hasV;
+      const useDown  = replicateDown  && replicateDownStep  > 0 && hasH;
+
+      const xSeg = buildSegments(n, vSplit, useRight, replicateRightStep);
+      const ySeg = buildSegments(g, hSplit, useDown, replicateDownStep);
+
+      const xPref = prefixSums(xSeg);
+      const yPref = prefixSums(ySeg);
+
+      lastXSeg = xSeg;
+      lastYSeg = ySeg;
+      lastXPref = xPref;
+      lastYPref = yPref;
+
+      let maxWidth, maxHeight;
+
+      if (inFullscreen) {
+        const parent = arrayGrid.parentElement; // fsArrayContainer
+        const cs = getComputedStyle(parent);
+
+        const padL = parseFloat(cs.paddingLeft) || 0;
+        const padR = parseFloat(cs.paddingRight) || 0;
+        const padT = parseFloat(cs.paddingTop) || 0;
+        const padB = parseFloat(cs.paddingBottom) || 0;
+
+        const LABEL_GUTTER_X = 120; // room for outside labels + right dimension arrow/pill
+        const LABEL_GUTTER_Y = 150; // room for top/bottom labels + bottom dimension arrow/pill
+
+        const innerW = parent.clientWidth  - padL - padR;
+        const innerH = parent.clientHeight - padT - padB;
+
+        maxWidth  = innerW - LABEL_GUTTER_X;
+        maxHeight = innerH - LABEL_GUTTER_Y;
+      } else {
+        const wrapperRect = arrayWrapper.getBoundingClientRect();
+        maxWidth  = Math.max(280, wrapperRect.width - 44);
+        maxHeight = Math.min(560, Math.max(340, window.innerHeight * 0.58));
+      }
+
+      maxWidth  = Math.max(140, maxWidth);
+      maxHeight = Math.max(140, maxHeight);
+
+      const cellSizeByCols = maxWidth  / n;
+      const cellSizeByRows = maxHeight / g;
+      const cellSize = Math.max(6, Math.min(26, Math.min(cellSizeByCols, cellSizeByRows)));
+      lastCellSize = cellSize;
+
+      const width  = n * cellSize;
+      const height = g * cellSize;
+
+      arrayGrid.style.width  = width  + 'px';
+      arrayGrid.style.height = height + 'px';
+
+      const regionCount = xSeg.length * ySeg.length;
+      setGridFade(regionCount);
+
+      const isTwoByTwo = (xSeg.length === 2 && ySeg.length === 2);
+
+      let areaColor = null;
+      if (!isTwoByTwo) {
+        const areaSet = new Set();
+        for (let xi = 0; xi < xSeg.length; xi++) {
+          for (let yi = 0; yi < ySeg.length; yi++) areaSet.add(xSeg[xi] * ySeg[yi]);
+        }
+        const areasSorted = Array.from(areaSet).sort((a,b)=>b-a);
+        areaColor = getPaletteForAreas(areasSorted);
+      }
+
+      for (let r = 0; r < g; r++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'array-row';
+        rowDiv.style.height = cellSize + 'px';
+
+        const yIndex = findSegmentIndex(yPref, r);
+        const ySize  = ySeg[yIndex];
+
+        for (let c = 0; c < n; c++) {
+          const xIndex = findSegmentIndex(xPref, c);
+          const xSize  = xSeg[xIndex];
+
+          const cell = document.createElement('div');
+          cell.className = 'array-cell';
+          cell.style.width  = cellSize + 'px';
+          cell.style.height = cellSize + 'px';
+
+          if (isTwoByTwo) {
+            const key =
+              (xIndex === 0 && yIndex === 0) ? 'var(--rect-a)' :
+              (xIndex === 1 && yIndex === 0) ? 'var(--rect-b)' :
+              (xIndex === 0 && yIndex === 1) ? 'var(--rect-c)' :
+                                               'var(--rect-d)';
+            cell.style.background = key;
+          } else {
+            const area = xSize * ySize;
+            cell.style.background = areaColor.get(area) || 'var(--rect-a)';
+          }
+
+          rowDiv.appendChild(cell);
+        }
+        arrayGrid.appendChild(rowDiv);
+      }
+
+      createVerticalPartition(width, height, cellSize, hasV, useRight, xSeg);
+      createHorizontalPartition(width, height, cellSize, hasH, useDown, ySeg);
+
+      renderEdgeAndProductLabels(cellSize, width, height, xSeg, ySeg);
+      renderEquationsFromSegments(xSeg, ySeg);
+      renderDimensions(width, height);
+
+      applyGridClass();
+      updateControlUI();
+      updateFsEquation();
+    }
+
+    function createVerticalPartition(width, height, cellSize, hasV, useRight, xSeg) {
+      const n = base;
+      vSplit = clamp(vSplit, 0, n);
+      const x = vSplit * cellSize;
+
+      if (hasV) {
+        const line = document.createElement('div');
+        line.className = 'partition-line vertical';
+        line.style.left = x + 'px';
+        line.style.top  = '0px';
+        line.style.height = height + 'px';
+        arrayGrid.appendChild(line);
+      }
+
+      if (useRight && xSeg.length > 2) {
+        let run = 0;
+        for (let i = 0; i < xSeg.length - 1; i++) {
+          run += xSeg[i];
+          if (run === vSplit) continue;
+          const xk = run * cellSize;
+          if (xk <= 0 || xk >= width) continue;
+          const helper = document.createElement('div');
+          helper.className = 'partition-line vertical helper';
+          helper.style.left = xk + 'px';
+          helper.style.top  = '0px';
+          helper.style.height = height + 'px';
+          arrayGrid.appendChild(helper);
+        }
+      }
+
+      if (n > 1) {
+        const hitTop = document.createElement('div');
+        hitTop.className = 'handle-hit handle-v-top';
+        hitTop.style.left = (x - 15) + 'px';
+        hitTop.style.top  = (-26) + 'px';
+        hitTop.dataset.type = 'v';
+        hitTop.tabIndex = 0;
+
+        const hitBottom = document.createElement('div');
+        hitBottom.className = 'handle-hit handle-v-bottom';
+        hitBottom.style.left = (x - 15) + 'px';
+        hitBottom.style.top  = (height - 4) + 'px';
+        hitBottom.dataset.type = 'v';
+        hitBottom.tabIndex = 0;
+
+        arrayGrid.appendChild(hitTop);
+        arrayGrid.appendChild(hitBottom);
+
+        hitTop.addEventListener('mousedown', startDrag);
+        hitBottom.addEventListener('mousedown', startDrag);
+      }
+    }
+
+    function createHorizontalPartition(width, height, cellSize, hasH, useDown, ySeg) {
+      const g = groups;
+      hSplit = clamp(hSplit, 0, g);
+      const y = hSplit * cellSize;
+
+      if (hasH) {
+        const line = document.createElement('div');
+        line.className = 'partition-line horizontal';
+        line.style.top  = y + 'px';
+        line.style.left = '0px';
+        line.style.width = width + 'px';
+        arrayGrid.appendChild(line);
+      }
+
+      if (useDown && ySeg.length > 2) {
+        let run = 0;
+        for (let i = 0; i < ySeg.length - 1; i++) {
+          run += ySeg[i];
+          if (run === hSplit) continue;
+          const yk = run * cellSize;
+          if (yk <= 0 || yk >= height) continue;
+          const helper = document.createElement('div');
+          helper.className = 'partition-line horizontal helper';
+          helper.style.top  = yk + 'px';
+          helper.style.left = '0px';
+          helper.style.width = width + 'px';
+          arrayGrid.appendChild(helper);
+        }
+      }
+
+      if (g > 1) {
+        const hitLeft = document.createElement('div');
+        hitLeft.className = 'handle-hit handle-h-left';
+        hitLeft.style.left = (-26) + 'px';
+        hitLeft.style.top  = (y - 15) + 'px';
+        hitLeft.dataset.type = 'h';
+        hitLeft.tabIndex = 0;
+
+        const hitRight = document.createElement('div');
+        hitRight.className = 'handle-hit handle-h-right';
+        hitRight.style.left = (width - 4) + 'px';
+        hitRight.style.top  = (y - 15) + 'px';
+        hitRight.dataset.type = 'h';
+        hitRight.tabIndex = 0;
+
+        arrayGrid.appendChild(hitLeft);
+        arrayGrid.appendChild(hitRight);
+
+        hitLeft.addEventListener('mousedown', startDrag);
+        hitRight.addEventListener('mousedown', startDrag);
+      }
+    }
+
+    function renderEdgeAndProductLabels(cellSize, width, height, xSeg, ySeg) {
+      const old = arrayGrid.querySelectorAll('.edge-label, .product-label');
+      old.forEach(el => el.remove());
+
+      const xPref = prefixSums(xSeg);
+      const yPref = prefixSums(ySeg);
+
+      const fontAdjust = Math.max(0.85, Math.min(1.25, cellSize / 18));
+
+      function addEdgeLabel(text, x, y) {
+        if (text === 0) return;
+        const div = document.createElement('div');
+        div.className = 'edge-label';
+        div.style.left = x + 'px';
+        div.style.top  = y + 'px';
+        div.textContent = text;
+        arrayGrid.appendChild(div);
+      }
+
+      function addProductLabel(text, x, y, xi, yi) {
+        const div = document.createElement('div');
+        div.className = 'product-label';
+        div.style.left = x + 'px';
+        div.style.top  = y + 'px';
+        div.style.fontSize = (1.1 * fontAdjust) + 'rem';
+        div.textContent = text;
+        div.dataset.xi = String(xi);
+        div.dataset.yi = String(yi);
+        arrayGrid.appendChild(div);
+      }
+
+      for (let i = 0; i < xSeg.length; i++) {
+        const mid = (xPref[i] + xPref[i + 1]) / 2;
+        addEdgeLabel(xSeg[i], mid * cellSize, -18);
+      }
+      for (let j = 0; j < ySeg.length; j++) {
+        const mid = (yPref[j] + yPref[j + 1]) / 2;
+        addEdgeLabel(ySeg[j], -20, mid * cellSize);
+      }
+
+      if (!showTotals) return;
+
+      const regionCount = xSeg.length * ySeg.length;
+      if (regionCount > 90) return;
+
+      for (let i = 0; i < xSeg.length; i++) {
+        for (let j = 0; j < ySeg.length; j++) {
+          const xMid = (xPref[i] + xPref[i + 1]) / 2;
+          const yMid = (yPref[j] + yPref[j + 1]) / 2;
+          addProductLabel(xSeg[i] * ySeg[j], xMid * cellSize, yMid * cellSize, i, j);
+        }
+      }
+    }
+
+    function renderEquationsFromSegments(xSeg, ySeg) {
+      const n = base;
+      const g = groups;
+      const product = n * g;
+      productBox.textContent = product;
+
+      const hasAnyPartition = (vSplit > 0 && vSplit < n) || (hSplit > 0 && hSplit < g);
+      if (!hasAnyPartition) {
+        decompText.innerHTML = '';
+        return;
+      }
+
+      const xHtml = (xSeg.length === 1)
+        ? `<span class="num red">${xSeg[0]}</span>`
+        : `(<span class="num red">${xSeg.join('</span> + <span class="num red">')}</span>)`;
+
+      const yHtml = (ySeg.length === 1)
+        ? `<span class="num purp">${ySeg[0]}</span>`
+        : `(<span class="num purp">${ySeg.join('</span> + <span class="num purp">')}</span>)`;
+
+      decompText.innerHTML =
+        `${xHtml} × ${yHtml} = <span class="num green">${product}</span>`;
+    }
+
+    /* Hover highlight */
+    function restoreHiddenLabel() {
+      if (lastHiddenProductLabel) {
+        lastHiddenProductLabel.style.opacity = '';
+        lastHiddenProductLabel = null;
+      }
+    }
+
+    function hideHover() {
+      hoverRect.style.display = 'none';
+      hoverCenter.style.display = 'none';
+      restoreHiddenLabel();
+    }
+
+    function showHoverForCell(cellCol, cellRow) {
+      const n = base, g = groups;
+      if (cellCol < 0 || cellCol >= n || cellRow < 0 || cellRow >= g) return;
+
+      const xi = findSegmentIndex(lastXPref, cellCol);
+      const yi = findSegmentIndex(lastYPref, cellRow);
+
+      const x0 = lastXPref[xi] * lastCellSize;
+      const x1 = lastXPref[xi + 1] * lastCellSize;
+      const y0 = lastYPref[yi] * lastCellSize;
+      const y1 = lastYPref[yi + 1] * lastCellSize;
+
+      const w = x1 - x0;
+      const h = y1 - y0;
+
+      const a = lastXSeg[xi];
+      const b = lastYSeg[yi];
+      const area = a * b;
+
+      hoverRect.style.display = 'block';
+      hoverRect.style.left = x0 + 'px';
+      hoverRect.style.top  = y0 + 'px';
+      hoverRect.style.width  = w + 'px';
+      hoverRect.style.height = h + 'px';
+
+      restoreHiddenLabel();
+      const pl = arrayGrid.querySelector(`.product-label[data-xi="${xi}"][data-yi="${yi}"]`);
+      if (pl) {
+        pl.style.opacity = '0';
+        lastHiddenProductLabel = pl;
+      }
+
+      hoverCenter.style.display = 'block';
+      hoverCenter.style.left = (x0 + w / 2) + 'px';
+      hoverCenter.style.top  = (y0 + h / 2) + 'px';
+      hoverCenter.textContent = `${a} × ${b} = ${area}`;
+    }
+
+    let hoverRAF = null;
+    arrayGrid.addEventListener('mousemove', (e) => {
+      if (!hasValidFactors()) return;
+
+      if (hoverRAF) return;
+      hoverRAF = requestAnimationFrame(() => {
+        hoverRAF = null;
+        const rect = arrayGrid.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const col = Math.floor(x / lastCellSize);
+        const row = Math.floor(y / lastCellSize);
+
+        if (x < 0 || y < 0 || x > rect.width || y > rect.height) {
+          hideHover();
+          return;
+        }
+        showHoverForCell(col, row);
+      });
+    });
+
+    arrayGrid.addEventListener('mouseleave', () => hideHover());
+
+    /* Drag behaviour */
+    function startDrag(e) {
+      e.preventDefault();
+      storeUndoPoint();
+
+      dragging = e.target.dataset.type;
+      e.target.classList.add('dragging');
+
+      if (dragging === 'v') userDraggedV = true;
+      if (dragging === 'h') userDraggedH = true;
+
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', stopDrag);
+    }
+
+    function onDrag(e) {
+      if (!dragging) return;
+
+      const rect = arrayGrid.getBoundingClientRect();
+      const n = base;
+      const g = groups;
+
+      const maxWidth  = rect.width;
+      const maxHeight = rect.height;
+
+      const cellSizeX = maxWidth  / n;
+      const cellSizeY = maxHeight / g;
+
+      if (dragging === 'v' && n > 1) {
+        const x = clamp(e.clientX - rect.left, 0, maxWidth);
+        const pos = Math.round(x / cellSizeX);
+        vSplit = clamp(pos, 0, n);
+      } else if (dragging === 'h' && g > 1) {
+        const y = clamp(e.clientY - rect.top, 0, maxHeight);
+        const pos = Math.round(y / cellSizeY);
+        hSplit = clamp(pos, 0, g);
+      }
+
+      renderArray();
+    }
+
+    function stopDrag() {
+      const handles = arrayGrid.querySelectorAll('.handle-hit.dragging');
+      handles.forEach(h => h.classList.remove('dragging'));
+      dragging = null;
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', stopDrag);
+    }
+
+    /* Keyboard: Undo */
+    document.addEventListener('keydown', (e) => {
+      const isUndo = (e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z');
+      if (isUndo) {
+        e.preventDefault();
+        undoSplit();
+      }
+    });
+
+    /* Factor inputs */
+    function handleFactor1Input() {
+      const n = hardClampInputTo100(factor1Box);
+      if (n !== null) base = n;
+      hideArray = computeHideFlag();
+
+      vSplit = clamp(vSplit, 0, base);
+      if (vSplit === base) vSplit = 0;
+
+      tensToggleState = 2;
+      maybeAutoSuggestSplits();
+      renderArray();
+    }
+
+    function handleFactor2Input() {
+      const n = hardClampInputTo100(factor2Box);
+      if (n !== null) groups = n;
+      hideArray = computeHideFlag();
+
+      hSplit = clamp(hSplit, 0, groups);
+      if (hSplit === groups) hSplit = 0;
+
+      tensToggleState = 2;
+      maybeAutoSuggestSplits();
+      renderArray();
+    }
+
+    factor1Box.addEventListener('input', handleFactor1Input);
+    factor2Box.addEventListener('input', handleFactor2Input);
+    factor1Box.addEventListener('blur', handleFactor1Input);
+    factor2Box.addEventListener('blur', handleFactor2Input);
+
+    /* Reset */
+    resetBtn.addEventListener('click', () => {
+      base = 12;
+      groups = 8;
+
+      vSplit = 0;
+      hSplit = 0;
+
+      userDraggedV = false;
+      userDraggedH = false;
+
+      hideArray = false;
+
+      replicateAll = false;
+      replicateRight = false;
+      replicateDown  = false;
+      replicateRightStep = 0;
+      replicateDownStep  = 0;
+
+      showTotals = false;
+      showGrid = true;
+      showDimensions = false;
+      applyGridClass();
+
+      tensToggleState = 2;
+
+      factor1Box.value = String(base);
+      factor2Box.value = String(groups);
+
+      maybeAutoSuggestSplits();
+      exitFullscreen();
+      renderArray();
+    });
+
+    /* Replicate Blue */
+    function toggleReplicateAll() {
+      if (!hasValidFactors()) return;
+
+      replicateAll = !replicateAll;
+
+      if (!replicateAll) {
+        replicateRight = false;
+        replicateDown  = false;
+        replicateRightStep = 0;
+        replicateDownStep  = 0;
+      }
+
+      updateControlUI();
+      renderArray();
+    }
+
+    repAllBtn.addEventListener('click', toggleReplicateAll);
+    fsRepBtn.addEventListener('click', toggleReplicateAll);
+
+    /* Show Grid */
+    function toggleGrid() {
+      showGrid = !showGrid;
+      applyGridClass();
+      updateControlUI();
+      renderArray();
+    }
+    gridBtn.addEventListener('click', toggleGrid);
+    fsGridBtn.addEventListener('click', toggleGrid);
+
+    /* Show Totals */
+    function toggleTotals() {
+      showTotals = !showTotals;
+      updateControlUI();
+      renderArray();
+    }
+    totalsBtn.addEventListener('click', toggleTotals);
+    fsTotalsBtn.addEventListener('click', toggleTotals);
+
+    /* Show dimensions */
+    function toggleDimensions() {
+      showDimensions = !showDimensions;
+      updateControlUI();
+      renderArray();
+    }
+    dimensionsBtn.addEventListener('click', toggleDimensions);
+    fsDimensionsBtn.addEventListener('click', toggleDimensions);
+
+    /* Partition by tens (both panels) */
+    tensBtn.addEventListener('click', partitionByTens);
+    fsTensBtn.addEventListener('click', partitionByTens);
+
+    /* Full screen */
+    function enterFullscreen() {
+      if (inFullscreen) return;
+      inFullscreen = true;
+      fsOverlay.style.display = 'block';
+      fsArrayContainer.appendChild(arrayGrid);
+      renderArray();
+    }
+
+    function exitFullscreen() {
+      if (!inFullscreen) return;
+      inFullscreen = false;
+      fsOverlay.style.display = 'none';
+      normalArrayParent.appendChild(arrayGrid);
+      renderArray();
+    }
+
+    fullscreenBtn.addEventListener('click', enterFullscreen);
+    fsClose.addEventListener('click', exitFullscreen);
+    fsOverlay.addEventListener('click', (e) => { if (e.target === fsOverlay) exitFullscreen(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') exitFullscreen(); });
+
+    window.addEventListener('resize', () => renderArray());
+
+    function init() {
+      base = parseInt(factor1Box.value, 10) || 12;
+      groups = parseInt(factor2Box.value, 10) || 8;
+
+      vSplit = 0;
+      hSplit = 0;
+
+      hideArray = false;
+
+      replicateAll = false;
+      replicateRight = false;
+      replicateDown  = false;
+      replicateRightStep = 0;
+      replicateDownStep  = 0;
+
+      inFullscreen = false;
+
+      showTotals = false;
+      showGrid = true;
+      showDimensions = false;
+      applyGridClass();
+
+      userDraggedV = false;
+      userDraggedH = false;
+
+      tensToggleState = 2;
+
+      maybeAutoSuggestSplits();
+      updateControlUI();
+      renderArray();
+    }
+
+    init();
+  </script>
+</body>
+</html>
       --border: #e5e7eb;
       --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
       --radius: 18px;
