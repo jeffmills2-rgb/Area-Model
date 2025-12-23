@@ -20,6 +20,14 @@
       --rect-d: #ddd6fe; /* BR */
 
       --grid-border: rgba(15, 23, 42, 0.06);
+
+      /* Factor colors (match everything) */
+      --blue: #2563eb;
+      --blue-deep: #1d4ed8;
+      --red: #ef4444;
+      --red-deep: #b91c1c;
+      --green: #22c55e;
+      --green-deep: #15803d;
     }
 
     * { box-sizing: border-box; }
@@ -65,10 +73,20 @@
       margin-bottom: 10px;
     }
 
+    .top-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
     .title {
       font-size: 1.75rem;
       font-weight: 650;
       margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .reset-btn {
@@ -86,6 +104,22 @@
     }
     .reset-btn:hover { background: #111827; transform: translateY(-1px); }
     .reset-btn:active { transform: translateY(0px); }
+
+    .return-btn {
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      font-weight: 750;
+      cursor: pointer;
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.10);
+      transition: transform 0.18s ease-out, box-shadow 0.18s ease-out, background 0.18s ease-out;
+      white-space: nowrap;
+    }
+    .return-btn:hover { background: #f8fafc; transform: translateY(-1px); }
+    .return-btn:active { transform: translateY(0px); }
 
     .section {
       margin-top: 8px;
@@ -132,16 +166,17 @@
       margin: 0;
     }
 
-    .big-box.factor1 { border-color: #3b82f6; color: #1d4ed8; }
-    .big-box.factor2 { border-color: #fb923c; color: #c2410c; }
-    .big-box.product { border-color: #22c55e; color: #15803d; }
+    /* Match colors across: factor1 = blue, factor2 = red */
+    .big-box.factor1 { border-color: var(--blue); color: var(--blue-deep); }
+    .big-box.factor2 { border-color: var(--red);  color: var(--red-deep); }
+    .big-box.product { border-color: var(--green); color: var(--green-deep); }
 
     .big-symbol { font-size: 1.4rem; font-weight: 700; }
 
     .equation-decomp { text-align: center; font-size: 0.98rem; margin-top: 4px; }
-    .num.red   { color: #ef4444; font-weight: 800; }
-    .num.purp  { color: #a855f7; font-weight: 800; }
-    .num.green { color: #16a34a; font-weight: 900; }
+    .num.blue  { color: var(--blue-deep); font-weight: 900; }
+    .num.red   { color: var(--red-deep);  font-weight: 900; }
+    .num.green { color: var(--green-deep); font-weight: 900; }
 
     /* Array card */
     .array-wrapper {
@@ -228,6 +263,33 @@
       transform: translate(-45%,-50%);
     }
 
+    /* Subtle first-run hint */
+    body.show-drag-hint .handle-hit {
+      animation: hintPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes hintPulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.08); }
+    }
+
+    .drag-hint {
+      position: absolute;
+      top: -54px;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(2, 6, 23, 0.86);
+      color: #f9fafb;
+      font-size: 0.88rem;
+      font-weight: 850;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.22);
+      white-space: nowrap;
+      display: none;
+    }
+    body.show-drag-hint .drag-hint { display: block; }
+
     .edge-label,
     .product-label {
       position: absolute;
@@ -238,7 +300,10 @@
       transition: all 0.18s ease-out;
     }
 
-    .edge-label { font-size: 0.9rem; font-weight: 650; }
+    .edge-label { font-size: 0.9rem; font-weight: 750; }
+    .edge-label.blue { color: var(--blue-deep); }
+    .edge-label.red  { color: var(--red-deep); }
+
     .product-label { font-size: 1.1rem; font-weight: 800; }
 
     .hover-rect {
@@ -281,7 +346,7 @@
       left: 0;
       top: calc(100% + 26px);
       height: 0;
-      border-top: 4px solid #2563eb; /* blue */
+      border-top: 4px solid var(--blue); /* blue */
     }
     .dim-h::before, .dim-h::after {
       content: "";
@@ -293,19 +358,19 @@
     .dim-h::before {
       left: -2px;
       border-width: 8px 12px 8px 0;
-      border-color: transparent #2563eb transparent transparent;
+      border-color: transparent var(--blue) transparent transparent;
     }
     .dim-h::after {
       right: -2px;
       border-width: 8px 0 8px 12px;
-      border-color: transparent transparent transparent #2563eb;
+      border-color: transparent transparent transparent var(--blue);
     }
 
     .dim-v {
       top: 0;
       left: calc(100% + 26px);
       width: 0;
-      border-left: 4px solid #ef4444; /* red */
+      border-left: 4px solid var(--red); /* red */
     }
     .dim-v::before, .dim-v::after {
       content: "";
@@ -317,12 +382,12 @@
     .dim-v::before {
       top: -2px;
       border-width: 0 8px 12px 8px;
-      border-color: transparent transparent #ef4444 transparent;
+      border-color: transparent transparent var(--red) transparent;
     }
     .dim-v::after {
       bottom: -2px;
       border-width: 12px 8px 0 8px;
-      border-color: #ef4444 transparent transparent transparent;
+      border-color: var(--red) transparent transparent transparent;
     }
 
     .dim-pill {
@@ -337,8 +402,8 @@
       white-space: nowrap;
       transform: translate(-50%, -50%);
     }
-    .dim-pill.blue { color: #1d4ed8; border: 2px solid rgba(37,99,235,0.35); }
-    .dim-pill.red  { color: #b91c1c; border: 2px solid rgba(239,68,68,0.35); }
+    .dim-pill.blue { color: var(--blue-deep); border: 2px solid rgba(37,99,235,0.35); }
+    .dim-pill.red  { color: var(--red-deep);  border: 2px solid rgba(239,68,68,0.35); }
 
     /* Control panel */
     .panel {
@@ -523,7 +588,10 @@
 <body>
   <div class="app">
     <div class="top-row">
-      <h1 class="title">Array & Area Model</h1>
+      <div class="top-left">
+        <button id="returnBtn" class="return-btn" type="button">Return</button>
+        <h1 class="title">Array & Area Model</h1>
+      </div>
       <button id="resetBtn" class="reset-btn" type="button">Reset</button>
     </div>
 
@@ -561,6 +629,7 @@
 
         <div class="panel-divider"></div>
         <button id="tensBtn" class="panel-small" type="button">Partition by tens</button>
+        <button id="fivesBtn" class="panel-small" type="button" style="margin-top:10px;">Partition by 5s</button>
       </aside>
     </div>
   </div>
@@ -589,6 +658,7 @@
 
           <div class="panel-divider"></div>
           <button id="fsTensBtn" class="panel-small" type="button">Partition by tens</button>
+          <button id="fsFivesBtn" class="panel-small" type="button" style="margin-top:10px;">Partition by 5s</button>
         </aside>
       </div>
     </div>
@@ -602,6 +672,7 @@
     const productBox  = document.getElementById('productBox');
     const decompText  = document.getElementById('decompText');
     const resetBtn    = document.getElementById('resetBtn');
+    const returnBtn   = document.getElementById('returnBtn');
 
     // panel buttons
     const repAllBtn   = document.getElementById('repAllBtn');
@@ -609,6 +680,7 @@
     const totalsBtn   = document.getElementById('totalsBtn');
     const dimensionsBtn = document.getElementById('dimensionsBtn');
     const tensBtn     = document.getElementById('tensBtn');
+    const fivesBtn    = document.getElementById('fivesBtn');
 
     const fullscreenBtn    = document.getElementById('fullscreenBtn');
     const fsOverlay        = document.getElementById('fsOverlay');
@@ -621,6 +693,7 @@
     const fsDimensionsBtn = document.getElementById('fsDimensionsBtn');
     const fsRepBtn    = document.getElementById('fsRepBtn');
     const fsTensBtn   = document.getElementById('fsTensBtn');
+    const fsFivesBtn  = document.getElementById('fsFivesBtn');
 
     // full screen equation
     const fsEquation  = document.getElementById('fsEquation');
@@ -676,6 +749,11 @@
     const hoverCenter = document.createElement('div');
     hoverCenter.className = 'hover-center';
 
+    // Drag hint bubble
+    const dragHint = document.createElement('div');
+    dragHint.className = 'drag-hint';
+    dragHint.textContent = 'Drag the arrows to split';
+
     // Dimensions overlay elements
     const dimLayer = document.createElement('div');
     dimLayer.className = 'dim-layer';
@@ -700,6 +778,7 @@
     arrayGrid.appendChild(hoverRect);
     arrayGrid.appendChild(hoverCenter);
     arrayGrid.appendChild(dimLayer);
+    arrayGrid.appendChild(dragHint);
 
     // Cached geometry for hover math
     let lastXSeg = [1], lastYSeg = [1];
@@ -710,6 +789,18 @@
 
     function clamp(val, min, max) {
       return Math.min(max, Math.max(min, val));
+    }
+
+    function isTypingInInput() {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = el.tagName?.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+    }
+
+    function clearDragHintForever() {
+      document.body.classList.remove('show-drag-hint');
+      try { localStorage.setItem('areaModel_dragHintSeen', '1'); } catch (_) {}
     }
 
     function computeHideFlag() {
@@ -806,6 +897,11 @@
       );
       tensBtn.style.display = canTens ? '' : 'none';
       fsTensBtn.style.display = canTens ? '' : 'none';
+
+      // show/hide Partition by 5s
+      const canFives = hasValidFactors() && ((base >= 6) || (groups >= 6));
+      fivesBtn.style.display = canFives ? '' : 'none';
+      fsFivesBtn.style.display = canFives ? '' : 'none';
     }
 
     function prefixSums(segments) {
@@ -874,7 +970,7 @@
         replicateDownStep = replicateDown ? fullVGroups : 0;
       } else {
         replicateDown = false;
-        replicateDownStep = 0;
+        replicateDownStep  = 0;
       }
     }
 
@@ -965,6 +1061,33 @@
       renderArray();
     }
 
+    /* ---------- Partition by 5s ----------------------------------------- */
+    function splitByFive(total) {
+      return (total >= 6) ? 5 : 0;
+    }
+
+    function partitionByFives() {
+      if (!hasValidFactors()) return;
+
+      storeUndoPoint();
+      tensToggleState = 2; // reset tens toggle state so it doesn’t feel “linked”
+
+      const v = splitByFive(base);
+      const h = splitByFive(groups);
+
+      vSplit = (v > 0 && v < base) ? v : 0;
+      hSplit = (h > 0 && h < groups) ? h : 0;
+
+      // optional: make it look like repeated chunks when possible
+      replicateAll = true;
+
+      userDraggedV = true;
+      userDraggedH = true;
+
+      updateControlUI();
+      renderArray();
+    }
+
     function renderDimensions(width, height) {
       if (!showDimensions || !hasValidFactors()) {
         dimLayer.style.display = 'none';
@@ -991,6 +1114,7 @@
       arrayGrid.appendChild(hoverRect);
       arrayGrid.appendChild(hoverCenter);
       arrayGrid.appendChild(dimLayer);
+      arrayGrid.appendChild(dragHint);
 
       if (!hasValidFactors()) {
         productBox.textContent = '';
@@ -1239,10 +1363,10 @@
 
       const fontAdjust = Math.max(0.85, Math.min(1.25, cellSize / 18));
 
-      function addEdgeLabel(text, x, y) {
+      function addEdgeLabel(text, x, y, cls) {
         if (text === 0) return;
         const div = document.createElement('div');
-        div.className = 'edge-label';
+        div.className = 'edge-label ' + (cls || '');
         div.style.left = x + 'px';
         div.style.top  = y + 'px';
         div.textContent = text;
@@ -1261,13 +1385,16 @@
         arrayGrid.appendChild(div);
       }
 
+      // Top labels = factor1 (blue)
       for (let i = 0; i < xSeg.length; i++) {
         const mid = (xPref[i] + xPref[i + 1]) / 2;
-        addEdgeLabel(xSeg[i], mid * cellSize, -18);
+        addEdgeLabel(xSeg[i], mid * cellSize, -18, 'blue');
       }
+
+      // Left labels = factor2 (red)
       for (let j = 0; j < ySeg.length; j++) {
         const mid = (yPref[j] + yPref[j + 1]) / 2;
-        addEdgeLabel(ySeg[j], -20, mid * cellSize);
+        addEdgeLabel(ySeg[j], -20, mid * cellSize, 'red');
       }
 
       if (!showTotals) return;
@@ -1296,13 +1423,14 @@
         return;
       }
 
+      // factor1 decomposition = blue, factor2 decomposition = red
       const xHtml = (xSeg.length === 1)
-        ? `<span class="num red">${xSeg[0]}</span>`
-        : `(<span class="num red">${xSeg.join('</span> + <span class="num red">')}</span>)`;
+        ? `<span class="num blue">${xSeg[0]}</span>`
+        : `(<span class="num blue">${xSeg.join('</span> + <span class="num blue">')}</span>)`;
 
       const yHtml = (ySeg.length === 1)
-        ? `<span class="num purp">${ySeg[0]}</span>`
-        : `(<span class="num purp">${ySeg.join('</span> + <span class="num purp">')}</span>)`;
+        ? `<span class="num red">${ySeg[0]}</span>`
+        : `(<span class="num red">${ySeg.join('</span> + <span class="num red">')}</span>)`;
 
       decompText.innerHTML =
         `${xHtml} × ${yHtml} = <span class="num green">${product}</span>`;
@@ -1389,6 +1517,8 @@
       e.preventDefault();
       storeUndoPoint();
 
+      clearDragHintForever();
+
       dragging = e.target.dataset.type;
       e.target.classList.add('dragging');
 
@@ -1433,13 +1563,36 @@
       document.removeEventListener('mouseup', stopDrag);
     }
 
-    /* Keyboard: Undo */
+    /* Keyboard shortcuts (+ undo) */
     document.addEventListener('keydown', (e) => {
-      const isUndo = (e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z');
+      if (isTypingInInput()) return;
+
+      const key = e.key.toLowerCase();
+
+      // Undo
+      const isUndo = (e.ctrlKey || e.metaKey) && key === 'z';
       if (isUndo) {
         e.preventDefault();
         undoSplit();
+        return;
       }
+
+      // Shortcuts
+      if (key === 'g') { e.preventDefault(); toggleGrid(); return; }
+      if (key === 't') { e.preventDefault(); toggleTotals(); return; }
+      if (key === 'd') { e.preventDefault(); toggleDimensions(); return; }
+      if (key === 'p') { e.preventDefault(); partitionByTens(); return; }
+      if (key === '5') { e.preventDefault(); partitionByFives(); return; }
+
+      // Full screen toggle
+      if (key === 'f') {
+        e.preventDefault();
+        inFullscreen ? exitFullscreen() : enterFullscreen();
+        return;
+      }
+
+      // Reset
+      if (key === 'r') { e.preventDefault(); resetBtn.click(); return; }
     });
 
     /* Factor inputs */
@@ -1473,6 +1626,11 @@
     factor2Box.addEventListener('input', handleFactor2Input);
     factor1Box.addEventListener('blur', handleFactor1Input);
     factor2Box.addEventListener('blur', handleFactor2Input);
+
+    /* Return */
+    returnBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
 
     /* Reset */
     resetBtn.addEventListener('click', () => {
@@ -1560,6 +1718,10 @@
     tensBtn.addEventListener('click', partitionByTens);
     fsTensBtn.addEventListener('click', partitionByTens);
 
+    /* Partition by 5s (both panels) */
+    fivesBtn.addEventListener('click', partitionByFives);
+    fsFivesBtn.addEventListener('click', partitionByFives);
+
     /* Full screen */
     function enterFullscreen() {
       if (inFullscreen) return;
@@ -1610,6 +1772,14 @@
       userDraggedH = false;
 
       tensToggleState = 2;
+
+      // show the hint only the first time (per browser)
+      try {
+        const seen = localStorage.getItem('areaModel_dragHintSeen') === '1';
+        document.body.classList.toggle('show-drag-hint', !seen);
+      } catch (_) {
+        document.body.classList.add('show-drag-hint');
+      }
 
       maybeAutoSuggestSplits();
       updateControlUI();
