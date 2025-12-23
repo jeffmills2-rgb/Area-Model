@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Area Model – Flash Card Zoom</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f5f7fb;
+  --border:#111827;
+
+  --blue:#93c5fd;
+  --pink:#f9a8d4;
+  --green:#86efac;
+  --purple:#c4b5fd;
+
+  /* timing knobs */
+  --zoom-duration:1500ms;
+  --zoom-ease:cubic-bezier(.2,.9,.2,1);
+
+  --dull-opacity:0.25;
+  --dull-sat:0.25;
+
+  --ctx-opacity:0.12;
+  --ctx-blur:3px;
+
+  --dot-size:10px;
+}
+
+/* Reduce blur on small screens */
+@media (max-width: 600px){
+  :root{
+    --ctx-blur:1.5px;
+    --ctx-opacity:0.16;
+  }
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:system-ui, sans-serif;
+  background:radial-gradient(circle at 20% 10%, #eef2ff 0%, var(--bg) 55%, #f8fafc 100%);
+}
+
+.wrap{
+  max-width:1120px;
+  margin:12px auto;
+  padding:0 12px 18px;
+  position:relative;
+}
+
+/* Return button */
+.returnBtn{
+  position:fixed;
+  top:14px;
+  left:14px;
+  z-index:50;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-radius:999px;
+  background:white;
+  border:2px solid #e5e7eb;
+  color:#111827;
+  font-weight:900;
+  text-decoration:none;
+  box-shadow:0 10px 22px rgba(15, 23, 42, 0.10);
+  transition:transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+.returnBtn:hover{
+  transform:translateY(-1px);
+  border-color:#cbd5e1;
+  box-shadow:0 14px 26px rgba(15, 23, 42, 0.12);
+}
+.returnBtn:active{ transform:translateY(0px) scale(0.99); }
+
+/* ---------- HEADER ---------- */
+.header{
+  background:#eef2ff;
+  border-radius:18px;
+  padding:12px 10px 10px;
+  margin-bottom:10px;
+  text-align:center;
+}
+
+.topline{
+  font-size:32px;
+  font-weight:900;
+}
+
+.pill{
+  display:inline-block;
+  padding:6px 18px;
+  border-radius:999px;
+  border:3px solid currentColor;
+  background:white;
+  min-width:92px;
+}
+.blue{color:#2563eb}
+.orange{color:#ea580c}
+.green{color:#16a34a}
+
+.subline{
+  margin-top:6px;
+  font-size:20px;
+  font-weight:800;
+}
+
+/* ---------- MODEL CARD ---------- */
+.modelCard{
+  background:white;
+  border-radius:18px;
+  padding:14px 12px 14px;
+}
+
+.modelRow{
+  display:flex;
+  gap:14px;
+  align-items:flex-start;
+  justify-content:center;
+}
+
+@media (max-width: 980px){
+  .modelRow{ flex-direction:column; align-items:center; }
+  .rightCol{ width:min(520px, 100%); }
+  .levelsPanel{ width:100%; margin-left:0; }
+}
+
+/* center model under header */
+.modelCenter{
+  width: fit-content;
+}
+
+/* Grid that contains outside labels + array */
+.modelWrap{
+  display:grid;
+  grid-template-columns:86px auto;
+  grid-template-rows:44px auto;
+  align-items:center;
+}
+
+/* OUTSIDE LABELS */
+.topLabels, .leftLabels{
+  font-weight:900;
+  font-size:28px;
+  transition:opacity 200ms ease;
+  color:#111827;
+}
+.zoomingHide{opacity:0}
+
+.topLabels{
+  grid-column:2;
+  grid-row:1;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  width:100%;
+}
+.topLabels div{
+  text-align:center;
+  line-height:1;
+}
+
+.leftLabels{
+  grid-column:1;
+  grid-row:2;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  align-items:flex-end;
+  padding-right:10px;
+  height:100%;
+}
+.leftLabels div{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  line-height:1;
+  width:100%;
+}
+
+/* Label content with dot */
+.lbl{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.leftLabels .lbl{ justify-content:flex-end; }
+.dot{
+  width:var(--dot-size);
+  height:var(--dot-size);
+  border-radius:999px;
+  display:inline-block;
+  border:2px solid rgba(17,24,39,0.35);
+}
+.dot.blue{ background:var(--blue); }
+.dot.pink{ background:var(--pink); }
+.dot.green{ background:var(--green); }
+
+/* ---------- ARRAY ---------- */
+.areaBox{
+  grid-column:2;
+  grid-row:2;
+  position:relative;
+  width:520px;
+  height:420px;
+  border:5px solid var(--border);
+  border-radius:0;
+  overflow:hidden;
+  background:white;
+  transition:border-color 200ms ease;
+}
+.areaBox.level1{
+  width:620px;
+  height:300px;
+}
+.areaBox.zooming{
+  border-color:transparent;
+}
+
+.stage{
+  position:absolute;
+  inset:0;
+  transform-origin:0 0;
+  transition:transform var(--zoom-duration) var(--zoom-ease);
+}
+
+.quad{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:"Patrick Hand", sans-serif;
+  font-weight:800;
+  transition:opacity 300ms ease, filter 300ms ease;
+}
+
+.dull{
+  opacity:var(--dull-opacity);
+  filter:saturate(var(--dull-sat));
+}
+
+.zooming .context{
+  opacity:var(--ctx-opacity);
+  filter:blur(var(--ctx-blur));
+}
+
+.dividerV,.dividerH{
+  position:absolute;
+  background:var(--border);
+}
+.dividerV{top:0;bottom:0;width:5px}
+.dividerH{left:0;right:0;height:5px}
+
+/* Focus outline */
+.focusFrame{
+  position:absolute;
+  border:5px solid var(--border);
+  border-radius:0;
+  opacity:0;
+  transition:opacity 200ms ease;
+  pointer-events:none;
+}
+.zooming .focusFrame{opacity:1;}
+
+/* Hidden quad swap */
+.quad .qMark, .quad .ansVal{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  padding:10px;
+  text-align:center;
+  line-height:1;
+}
+.quad .qMark{ opacity:1; }
+.quad.showAnswer .qMark{ opacity:0; }
+.quad.showAnswer .ansVal{ opacity:1; }
+
+/* ---------- RIGHT COLUMN (levels + buttons) ---------- */
+.rightCol{
+  width:240px;
+  margin-left: 164px; /* creates white space from the grid */
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.levelsPanel{
+  width:100%;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:12px;
+}
+
+.levelsTitle{
+  font-weight:900;
+  color:#111827;
+  margin-bottom:8px;
+}
+
+.levelBtn{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 10px;
+  margin:8px 0;
+  border-radius:14px;
+  border:2px solid #e5e7eb;
+  background:white;
+  cursor:pointer;
+  text-align:left;
+  transition:transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.levelBtn:hover{ transform:translateY(-1px); }
+.levelBtn:active{ transform:translateY(0px) scale(0.99); }
+
+.tick{
+  width:22px;height:22px;
+  border-radius:999px;
+  border:2px solid #cbd5e1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  color:white;
+  flex:0 0 auto;
+}
+.levelBtn.active{
+  border-color:#2563eb;
+  box-shadow:0 8px 18px rgba(37,99,235,0.12);
+}
+.levelBtn.active .tick{
+  border-color:#2563eb;
+  background:#2563eb;
+}
+.levelBtn .tick::before{ content:""; }
+.levelBtn.active .tick::before{ content:"✓"; }
+
+.levelText{
+  font-weight:900;
+  color:#111827;
+  font-size:14px;
+  line-height:1.1;
+}
+
+/* Action buttons */
+.actions{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.actionBtn{
+  width:100%;
+  padding:14px 14px;
+  border-radius:999px;
+  border:2px solid #e5e7eb;
+  background:#ffffff;
+  cursor:pointer;
+  font-weight:900;
+  font-size:16px;
+  color:#111827;
+  box-shadow:0 10px 22px rgba(15, 23, 42, 0.08);
+  transition:transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+.actionBtn:hover{
+  transform:translateY(-1px);
+  border-color:#cbd5e1;
+  box-shadow:0 14px 26px rgba(15, 23, 42, 0.10);
+}
+.actionBtn:active{ transform:translateY(0px) scale(0.99); }
+
+.actionBtn.primary{
+  border-color:#bbf7d0;
+  background:linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+}
+.actionBtn.secondary{
+  border-color:#dbeafe;
+  background:linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+}
+</style>
+</head>
+
+<body>
+<a class="returnBtn" href="index.html" aria-label="Return to index">Return</a>
+
+<div class="wrap">
+
+  <div class="header">
+    <div class="topline">
+      <span class="pill blue" id="aPill"></span>
+      ×
+      <span class="pill orange" id="bPill"></span>
+      =
+      <span class="pill green" id="prodPill">?</span>
+    </div>
+    <div class="subline" id="subline"></div>
+  </div>
+
+  <div class="modelCard">
+    <div class="modelRow">
+
+      <div class="modelCenter">
+        <div class="modelWrap">
+
+          <div></div>
+
+          <div class="topLabels" id="topLabels">
+            <div id="topL"></div>
+            <div id="topR"></div>
+          </div>
+
+          <div class="leftLabels" id="leftLabels">
+            <div id="leftT"></div>
+            <div id="leftB"></div>
+          </div>
+
+          <div class="areaBox" id="areaBox">
+            <div class="stage" id="stage">
+
+              <div class="dividerV" id="dividerV"></div>
+              <div class="dividerH" id="dividerH"></div>
+
+              <div class="quad" id="TL"></div>
+              <div class="quad" id="TR"></div>
+              <div class="quad" id="BL"></div>
+              <div class="quad" id="BR"></div>
+
+              <div class="focusFrame" id="focusFrame"></div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="rightCol">
+        <div class="levelsPanel" aria-label="Levels">
+          <div class="levelsTitle">Levels</div>
+
+          <button class="levelBtn" data-level="1" id="lvl1">
+            <span class="tick" aria-hidden="true"></span>
+            <span class="levelText">Single by double</span>
+          </button>
+
+          <button class="levelBtn" data-level="2" id="lvl2">
+            <span class="tick" aria-hidden="true"></span>
+            <span class="levelText">Double digit – split by tens</span>
+          </button>
+
+          <button class="levelBtn" data-level="3" id="lvl3">
+            <span class="tick" aria-hidden="true"></span>
+            <span class="levelText">Double digit – harder tens</span>
+          </button>
+
+          <button class="levelBtn" data-level="4" id="lvl4">
+            <span class="tick" aria-hidden="true"></span>
+            <span class="levelText">Double digit – split by 5s</span>
+          </button>
+
+          <button class="levelBtn" data-level="5" id="lvl5">
+            <span class="tick" aria-hidden="true"></span>
+            <span class="levelText">Double digit – any split</span>
+          </button>
+        </div>
+
+        <div class="actions" aria-label="Actions">
+          <button class="actionBtn primary" id="btnNew">New Problem (Space)</button>
+          <button class="actionBtn secondary" id="btnReveal">Reveal (R)</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const aPill = document.getElementById("aPill");
+const bPill = document.getElementById("bPill");
+const prodPill = document.getElementById("prodPill");
+const subline = document.getElementById("subline");
+
+const topLabels = document.getElementById("topLabels");
+const leftLabels = document.getElementById("leftLabels");
+
+const topL = document.getElementById("topL");
+const topR = document.getElementById("topR");
+const leftT = document.getElementById("leftT");
+const leftB = document.getElementById("leftB");
+
+const areaBox = document.getElementById("areaBox");
+const stage = document.getElementById("stage");
+
+const TL = document.getElementById("TL");
+const TR = document.getElementById("TR");
+const BL = document.getElementById("BL");
+const BR = document.getElementById("BR");
+
+const dividerV = document.getElementById("dividerV");
+const dividerH = document.getElementById("dividerH");
+const focusFrame = document.getElementById("focusFrame");
+
+const btnNew = document.getElementById("btnNew");
+const btnReveal = document.getElementById("btnReveal");
+
+const levelButtons = [...document.querySelectorAll(".levelBtn")];
+
+/* -------------------- SOUND -------------------- */
+/* Put these mp3 files in the SAME folder as this HTML:
+   - select.mp3
+   - newproblem.mp3
+   - reveal.mp3
+*/
+const SFX = {
+  select: new Audio("select.mp3"),
+  newproblem: new Audio("newproblem.mp3"),
+  reveal: new Audio("reveal.mp3")
+};
+Object.values(SFX).forEach(a=>{
+  a.preload = "auto";
+  a.volume = 1.0;
+});
+
+function playSfx(key){
+  const a = SFX[key];
+  if(!a) return;
+  try{
+    a.pause();
+    a.currentTime = 0;
+    const p = a.play();
+    if(p && typeof p.catch === "function") p.catch(()=>{});
+  }catch(e){}
+}
+/* ------------------------------------------------ */
+
+const state = {
+  level: 2,
+  animating: false,
+  revealed: false,
+  hidden: "TL",
+
+  a: 28,
+  b: 36,
+
+  // split parts (horizontal = a, vertical = b)
+  aT: 20, aO: 8,
+  bT: 30, bO: 6,
+
+  areas: { TL:0, TR:0, BL:0, BR:0 },
+
+  W: 520,
+  H: 420,
+  wL: 0, wR: 0,
+  hT: 0, hB: 0
+};
+
+/* ---------- helpers ---------- */
+
+function setCanvasForLevel(){
+  if(state.level === 1){
+    state.W = 620;
+    state.H = 300;
+    areaBox.classList.add("level1");
+  }else{
+    state.W = 520;
+    state.H = 420;
+    areaBox.classList.remove("level1");
+  }
+}
+
+function randDouble(){
+  let n;
+  do n = Math.floor(Math.random()*88) + 12; // 12..99
+  while(n % 10 === 0);
+  return n;
+}
+function randSingle(){
+  return Math.floor(Math.random()*8) + 2; // 2..9
+}
+
+function comfortableSplit(leftVal, rightVal, totalPx){
+  const total = Math.max(1, leftVal + rightVal);
+  let pRight = rightVal / total;
+
+  const MIN = 0.16;
+  const MAX = 0.30;
+  pRight = Math.max(MIN, Math.min(MAX, pRight));
+
+  const rightPx = Math.round(totalPx * pRight);
+  return { leftPx: totalPx - rightPx, rightPx };
+}
+
+function setQuad(el, x, y, w, h, bg, sizingText){
+  if(w <= 0 || h <= 0){
+    el.style.display = "none";
+    return;
+  }
+  el.style.display = "flex";
+
+  el.style.left = x + "px";
+  el.style.top = y + "px";
+  el.style.width = w + "px";
+  el.style.height = h + "px";
+  el.style.background = bg;
+
+  const minSide = Math.max(1, Math.min(w, h));
+  const t = (sizingText !== undefined && sizingText !== null)
+    ? String(sizingText)
+    : String(el.textContent).trim();
+
+  const len = Math.max(1, t.length);
+  let fs = Math.floor(minSide * 0.55);
+  fs = Math.floor(fs * Math.max(0.55, Math.min(1.0, 4/len)));
+  fs = Math.max(18, Math.min(110, fs));
+  if(t === "?") fs = Math.max(fs, 46);
+  el.style.fontSize = fs + "px";
+}
+
+function applyOutsideLabelSizing(){
+  topLabels.style.width = state.W + "px";
+  topL.style.width = state.wL + "px";
+  topR.style.width = state.wR + "px";
+
+  leftLabels.style.height = state.H + "px";
+  leftT.style.height = state.hT + "px";
+  leftB.style.height = state.hB + "px";
+
+  topL.style.display = "flex";
+  topR.style.display = "flex";
+  topL.style.justifyContent = "center";
+  topR.style.justifyContent = "center";
+
+  leftT.style.display = state.hT > 0 ? "flex" : "none";
+  leftB.style.display = state.hB > 0 ? "flex" : "none";
+  leftT.style.alignItems = "center";
+  leftB.style.alignItems = "center";
+}
+
+/* label builders with tiny dots */
+function setTopLabel(el, value, dotClass){
+  if(value === "" || value === null || value === undefined){
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `<span class="lbl"><span class="dot ${dotClass}"></span><span class="num">${value}</span></span>`;
+}
+function setLeftLabel(el, value, dotClass){
+  if(value === "" || value === null || value === undefined){
+    el.innerHTML = "";
+    return;
+  }
+  el.innerHTML = `<span class="lbl"><span class="num">${value}</span><span class="dot ${dotClass}"></span></span>`;
+}
+
+function getHiddenRect(){
+  if(state.level === 1){
+    if(state.hidden === "TL") return { x:0, y:0, w:state.wL, h:state.hT };
+    return { x:state.wL, y:0, w:state.wR, h:state.hT };
+  }
+  if(state.hidden==="TL") return { x:0, y:0, w:state.wL, h:state.hT };
+  if(state.hidden==="TR") return { x:state.wL, y:0, w:state.wR, h:state.hT };
+  if(state.hidden==="BL") return { x:0, y:state.hT, w:state.wL, h:state.hB };
+  return { x:state.wL, y:state.hT, w:state.wR, h:state.hB };
+}
+
+function ensureHiddenMarkup(){
+  const el = document.getElementById(state.hidden);
+  if(!el.dataset.swapReady){
+    el.innerHTML = `<span class="qMark">?</span><span class="ansVal"></span>`;
+    el.dataset.swapReady = "1";
+  }
+  el.querySelector(".ansVal").textContent = state.areas[state.hidden];
+  el.classList.remove("showAnswer");
+  return el;
+}
+
+/* ✅ Auto-fit narration so it stays inside the cell */
+function fitHiddenPromptFont(text){
+  const rect = getHiddenRect();
+  const minSide = Math.max(1, Math.min(rect.w, rect.h));
+  const len = Math.max(1, String(text).length);
+
+  let fs = Math.floor(minSide * 0.42);
+  fs = Math.floor(fs * Math.max(0.45, Math.min(1.0, 6/len)));
+  fs = Math.max(18, Math.min(86, fs));
+  return fs;
+}
+
+function setHiddenPromptText(txt){
+  const hiddenEl = document.getElementById(state.hidden);
+  if(!hiddenEl.dataset.swapReady) return;
+
+  const q = hiddenEl.querySelector(".qMark");
+  if(!q) return;
+
+  q.textContent = txt;
+
+  if(String(txt).trim() !== "?"){
+    hiddenEl.dataset.prevFs = hiddenEl.style.fontSize || "";
+    hiddenEl.style.fontSize = fitHiddenPromptFont(txt) + "px";
+  }else{
+    if(hiddenEl.dataset.prevFs !== undefined){
+      hiddenEl.style.fontSize = hiddenEl.dataset.prevFs;
+    }
+  }
+}
+
+function clearAllSwapMarkup(){
+  for(const k of ["TL","TR","BL","BR"]){
+    const el = document.getElementById(k);
+    el.dataset.swapReady = "";
+    el.classList.remove("showAnswer");
+  }
+}
+
+function computeAreas(){
+  state.areas = {
+    TL: state.aT * state.bT,
+    TR: state.aO * state.bT,
+    BL: state.aT * state.bO,
+    BR: state.aO * state.bO
+  };
+  if(state.level === 1){
+    state.areas = { TL: state.aT * state.bT, TR: state.aO * state.bT, BL:0, BR:0 };
+  }
+}
+
+/* ---------- level split rules ---------- */
+
+function splitStandardTens(n){
+  const tens = Math.floor(n/10)*10;
+  return { p1: tens, p2: n - tens };
+}
+
+function splitHarderTens(n){
+  const max = Math.floor(n/10)*10;
+  const candidates = [];
+  for(let k=10; k<=max-10; k+=10) candidates.push(k);
+  if(candidates.length === 0) return null;
+  const k = candidates[Math.floor(Math.random()*candidates.length)];
+  return { p1:k, p2:n-k };
+}
+
+function splitBy5Not10(n){
+  const candidates = [];
+  for(let k=5; k<=n-5; k+=5){
+    if(k % 10 !== 0) candidates.push(k);
+  }
+  if(candidates.length === 0) return null;
+  const k = candidates[Math.floor(Math.random()*candidates.length)];
+  return { p1:k, p2:n-k };
+}
+
+function splitAny(n){
+  const k = Math.floor(Math.random()*(n-1)) + 1;
+  return { p1:k, p2:n-k };
+}
+
+/* ---------- problem generation ---------- */
+
+function pickNumbersAndSplits(){
+  let tries = 0;
+  while(tries++ < 500){
+    let a, b;
+    let aSplit, bSplit;
+
+    if(state.level === 1){
+      a = randDouble();
+      b = randSingle();
+      aSplit = splitStandardTens(a);
+      bSplit = { p1: b, p2: 0 };
+      return { a, b, aSplit, bSplit };
+    }
+
+    a = randDouble();
+    b = randDouble();
+
+    if(state.level === 2){
+      aSplit = splitStandardTens(a);
+      bSplit = splitStandardTens(b);
+      return { a, b, aSplit, bSplit };
+    }
+
+    if(state.level === 3){
+      aSplit = splitHarderTens(a);
+      bSplit = splitHarderTens(b);
+      if(aSplit && bSplit) return { a, b, aSplit, bSplit };
+      continue;
+    }
+
+    if(state.level === 4){
+      aSplit = splitBy5Not10(a);
+      bSplit = splitBy5Not10(b);
+      if(aSplit && bSplit) return { a, b, aSplit, bSplit };
+      continue;
+    }
+
+    if(state.level === 5){
+      aSplit = splitAny(a);
+      bSplit = splitAny(b);
+      return { a, b, aSplit, bSplit };
+    }
+  }
+
+  return { a: 56, b: 7, aSplit: splitStandardTens(56), bSplit: {p1:7,p2:0} };
+}
+
+/* factors for narration based on hidden cell */
+function getCellFactors(cell){
+  if(cell === "TL") return [state.aT, state.bT];
+  if(cell === "TR") return [state.aO, state.bT];
+  if(cell === "BL") return [state.aT, state.bO];
+  return [state.aO, state.bO];
+}
+
+function newProblem({ sound = false } = {}){
+  if(state.animating) return;
+
+  state.revealed = false;
+  if(sound) playSfx("newproblem");
+
+  setCanvasForLevel();
+
+  const pick = pickNumbersAndSplits();
+  state.a = pick.a;
+  state.b = pick.b;
+
+  state.aT = pick.aSplit.p1; state.aO = pick.aSplit.p2;
+  state.bT = pick.bSplit.p1; state.bO = pick.bSplit.p2;
+
+  let hiddenChoices;
+  if (state.level === 1) {
+    hiddenChoices = ["TL","TR"];
+  } else if (state.level === 3 || state.level === 4) {
+    hiddenChoices = ["TL","TR","BL"];
+  } else {
+    hiddenChoices = ["TL","TR","BL","BR"];
+  }
+  state.hidden = hiddenChoices[Math.floor(Math.random()*hiddenChoices.length)];
+
+  aPill.textContent = state.a;
+  bPill.textContent = state.b;
+  prodPill.textContent = "?";
+
+  if(state.level === 1){
+    subline.textContent = `(${state.aT}+${state.aO}) × (${state.bT})`;
+  }else{
+    subline.textContent = `(${state.aT}+${state.aO}) × (${state.bT}+${state.bO})`;
+  }
+
+  setTopLabel(topL, state.aT, "blue");
+  setTopLabel(topR, state.aO, "pink");
+  setLeftLabel(leftT, state.bT, "blue");
+  setLeftLabel(leftB, (state.level === 1) ? "" : state.bO, "green");
+
+  computeAreas();
+
+  const splitX = comfortableSplit(state.aT, state.aO, state.W);
+  state.wL = splitX.leftPx; state.wR = splitX.rightPx;
+
+  if(state.level === 1){
+    state.hT = state.H;
+    state.hB = 0;
+  }else{
+    const splitY = comfortableSplit(state.bT, state.bO, state.H);
+    state.hT = splitY.leftPx; state.hB = splitY.rightPx;
+  }
+
+  dividerV.style.left = state.wL + "px";
+  dividerV.style.width = "5px";
+
+  if(state.level === 1){
+    dividerH.style.display = "none";
+  }else{
+    dividerH.style.display = "block";
+    dividerH.style.top = state.hT + "px";
+    dividerH.style.height = "5px";
+  }
+
+  for(const k of ["TL","TR","BL","BR"]){
+    document.getElementById(k).className = "quad";
+  }
+  clearAllSwapMarkup();
+
+  TL.textContent = (state.hidden==="TL") ? "" : state.areas.TL;
+  TR.textContent = (state.hidden==="TR") ? "" : state.areas.TR;
+
+  if(state.level === 1){
+    BL.textContent = "";
+    BR.textContent = "";
+  }else{
+    BL.textContent = (state.hidden==="BL") ? "" : state.areas.BL;
+    BR.textContent = (state.hidden==="BR") ? "" : state.areas.BR;
+  }
+
+  ensureHiddenMarkup();
+  setHiddenPromptText("?"); // reset hidden to ?
+
+  const activeCells = (state.level === 1) ? ["TL","TR"] : ["TL","TR","BL","BR"];
+  for(const k of activeCells){
+    const el = document.getElementById(k);
+    el.classList.remove("context");
+    if(k !== state.hidden) el.classList.add("dull");
+  }
+
+  setQuad(TL, 0, 0, state.wL, state.hT, "var(--blue)",  state.hidden==="TL" ? "?" : state.areas.TL);
+  setQuad(TR, state.wL, 0, state.wR, state.hT, "var(--pink)", state.hidden==="TR" ? "?" : state.areas.TR);
+  setQuad(BL, 0, state.hT, state.wL, state.hB, "var(--green)", state.hidden==="BL" ? "?" : state.areas.BL);
+  setQuad(BR, state.wL, state.hT, state.wR, state.hB, "var(--purple)", state.hidden==="BR" ? "?" : state.areas.BR);
+
+  const r = getHiddenRect();
+  focusFrame.style.left = r.x + "px";
+  focusFrame.style.top = r.y + "px";
+  focusFrame.style.width = r.w + "px";
+  focusFrame.style.height = r.h + "px";
+
+  stage.style.transform = "translate(0,0) scale(1)";
+  areaBox.classList.remove("zooming");
+  topLabels.classList.remove("zoomingHide");
+  leftLabels.classList.remove("zoomingHide");
+
+  applyOutsideLabelSizing();
+}
+
+/* ---------- teachable zoom sequence ---------- */
+
+function showAllValuesAndUndull(){
+  const hiddenEl = document.getElementById(state.hidden);
+  hiddenEl.innerHTML = state.areas[state.hidden];
+  hiddenEl.dataset.swapReady = "";
+  hiddenEl.style.fontSize = ""; // clear any temporary font sizing
+
+  for(const k of ["TL","TR","BL","BR"]){
+    const el = document.getElementById(k);
+    el.classList.remove("dull","context","showAnswer");
+  }
+
+  TL.textContent = state.areas.TL;
+  TR.textContent = state.areas.TR;
+
+  if(state.level === 1){
+    BL.textContent = "";
+    BR.textContent = "";
+  }else{
+    BL.textContent = state.areas.BL;
+    BR.textContent = state.areas.BR;
+  }
+
+  // after swapping content back to plain numbers, re-run sizing
+  setQuad(TL, 0, 0, state.wL, state.hT, "var(--blue)",  TL.textContent.trim());
+  setQuad(TR, state.wL, 0, state.wR, state.hT, "var(--pink)", TR.textContent.trim());
+  setQuad(BL, 0, state.hT, state.wL, state.hB, "var(--green)", BL.textContent.trim());
+  setQuad(BR, state.wL, state.hT, state.wR, state.hB, "var(--purple)", BR.textContent.trim());
+}
+
+function runTeachableZoom({ sound = false } = {}){
+  if(state.animating) return;
+  state.animating = true;
+
+  if(sound) playSfx("reveal");
+
+  areaBox.classList.add("zooming");
+  topLabels.classList.add("zoomingHide");
+  leftLabels.classList.add("zoomingHide");
+
+  const activeCells = (state.level === 1) ? ["TL","TR"] : ["TL","TR","BL","BR"];
+  for(const k of activeCells){
+    const el = document.getElementById(k);
+    el.classList.remove("context");
+    if(k !== state.hidden) el.classList.add("context");
+  }
+
+  const rect = getHiddenRect();
+  const targetFill = 0.85;
+  const s = Math.min((state.W*targetFill)/rect.w, (state.H*targetFill)/rect.h);
+
+  const cx = rect.x + rect.w/2;
+  const cy = rect.y + rect.h/2;
+
+  const tx = state.W/2 - cx*s;
+  const ty = state.H/2 - cy*s;
+
+  // narration replaces the question mark in the hidden cell (auto-fit)
+  const [fa, fb] = getCellFactors(state.hidden);
+  setHiddenPromptText(`${fa} × ${fb}`);
+
+  stage.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+
+  const zoomMs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--zoom-duration")) || 1500;
+
+  setTimeout(()=>{
+    const hiddenEl = document.getElementById(state.hidden);
+    if(hiddenEl.dataset.swapReady){
+      hiddenEl.classList.add("showAnswer");
+    }
+
+    const prod = state.a * state.b;
+    prodPill.textContent = prod;
+
+    state.revealed = true;
+
+    setTimeout(()=>{
+      stage.style.transform = "translate(0,0) scale(1)";
+
+      setTimeout(()=>{
+        areaBox.classList.remove("zooming");
+        topLabels.classList.remove("zoomingHide");
+        leftLabels.classList.remove("zoomingHide");
+
+        showAllValuesAndUndull();
+        state.animating = false;
+      }, zoomMs);
+
+    }, 1000);
+
+  }, zoomMs);
+}
+
+/* ---------- level UI ---------- */
+
+function setActiveLevelUI(){
+  levelButtons.forEach(btn=>{
+    btn.classList.toggle("active", Number(btn.dataset.level) === state.level);
+  });
+}
+
+function setLevel(n, { sound = false } = {}){
+  if(state.animating) return;
+  state.level = n;
+  setActiveLevelUI();
+  if(sound) playSfx("select");
+  newProblem({ sound:false });
+}
+
+levelButtons.forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    setLevel(Number(btn.dataset.level), { sound:true });
+  });
+});
+
+/* ---------- action buttons ---------- */
+btnNew.addEventListener("click", ()=> newProblem({ sound:true }));
+btnReveal.addEventListener("click", ()=> runTeachableZoom({ sound:true }));
+
+/* ---------- keyboard ---------- */
+window.addEventListener("keydown", e=>{
+  if(e.code==="Space"){
+    e.preventDefault();
+    newProblem({ sound:true });
+  }
+  if(e.key.toLowerCase()==="r"){
+    runTeachableZoom({ sound:true });
+  }
+});
+
+/* ---------- init ---------- */
+setActiveLevelUI();
+newProblem({ sound:false }); // no sound on initial load
+</script>
+</body>
+</html>
