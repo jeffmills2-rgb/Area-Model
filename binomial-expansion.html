@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Binomial Expansion – Area Model</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --ink:#0f172a;
+
+      --blue:#2563eb;
+      --purple:#7c3aed;
+
+      --border:#111827;
+      --shadow: 0 14px 36px rgba(15, 23, 42, 0.10);
+
+      --chip-green:#d9f99d;   /* x^2 */
+      --chip-purple:#e9d5ff;  /* x terms */
+      --chip-orange:#fed7aa;  /* constants */
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: radial-gradient(circle at 10% 0%, rgba(37,99,235,0.08), transparent 55%),
+                  radial-gradient(circle at 90% 15%, rgba(124,58,237,0.08), transparent 55%),
+                  var(--bg);
+      color: var(--ink);
+    }
+
+    /* Always-visible fallback if JS fails */
+    #fallback {
+      padding: 18px;
+      font-weight: 800;
+      color: #111827;
+      display:none;
+    }
+    #fallback pre{
+      white-space: pre-wrap;
+      background: #fff;
+      border: 2px solid #111827;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    #stage{
+      width: 100%;
+      height: 100vh;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      overflow:hidden;
+      padding: 18px 18px 28px;
+      position: relative;
+    }
+    #scaler{
+      transform-origin: top center;
+      margin-top: 8px;
+    }
+
+    .card{
+      width: min(980px, calc(100vw - 36px));
+      background: var(--card);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 22px 26px 18px;
+      position: relative;
+    }
+
+    .title{
+      text-align:center;
+      font-weight: 900;
+      font-size: 44px;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .expr{
+      text-align:center;
+      margin: 8px 0 18px;
+      font-size: 40px;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      white-space: nowrap;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      align-items:center;
+      justify-items:center;
+    }
+
+    .model-wrap{
+      width: 560px;
+      max-width: 90vw;
+      display:grid;
+      grid-template-columns: 52px 1fr;
+      grid-template-rows: 50px 1fr;
+      gap: 10px 12px;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .top-labels{
+      grid-column: 2;
+      grid-row: 1;
+      width: 100%;
+      display:grid;
+      align-items:center;
+      justify-items:center;
+      font-weight: 900;
+      font-size: 36px;
+      font-family: 'Patrick Hand', system-ui, sans-serif;
+      line-height: 1;
+    }
+    .left-labels{
+      grid-column: 1;
+      grid-row: 2;
+      height: 100%;
+      display:grid;
+      align-items:center;
+      justify-items:center;
+      font-weight: 900;
+      font-size: 36px;
+      font-family: 'Patrick Hand', system-ui, sans-serif;
+      line-height: 1;
+    }
+
+    .axis-label{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      line-height:1;
+      width: 100%;
+      height: 100%;
+    }
+
+    .lbl-x{ color: var(--blue); }
+    .lbl-a{ color: var(--purple); }
+    .lbl-b{ color: var(--blue); }
+    .lbl-num{ color: var(--purple); }
+
+    .gridbox{
+      grid-column: 2;
+      grid-row: 2;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border: 3px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      display:grid;
+      background: #fff;
+      position: relative;
+    }
+
+    .cell{
+      border: 1.5px solid rgba(17,24,39,0.75);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position: relative;
+      overflow: visible;
+    }
+
+    .term{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      max-width: 92%;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 38px;
+      line-height: 1;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .hidden{ visibility: hidden; }
+
+    .chip-x2{ background: var(--chip-green); }
+    .chip-x{ background: var(--chip-purple); }
+    .chip-const{ background: var(--chip-orange); }
+
+    .simplified{
+      width: min(860px, 92vw);
+      margin: 12px auto 0;
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      display:flex;
+      align-items: baseline;
+      justify-content: flex-start;
+      gap: 12px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+    .simp-label{ color: var(--ink); flex: 0 0 auto; }
+
+    .simp-eq{
+      display:inline-flex;
+      align-items: baseline;
+      gap: 10px;
+      white-space: nowrap;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-weight: 600;
+      font-size: 40px;
+      color: var(--ink);
+      position: relative;
+    }
+
+    /* HIDDEN until needed */
+    .op{
+      font-weight: 800;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      font-size: 34px;
+      color: #111827;
+      line-height: 1;
+      user-select: none;
+      opacity: 0;
+      transition: opacity 120ms ease;
+    }
+    .op.show{ opacity: 1; }
+
+    .slot{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width: 64px;
+      min-height: 44px;
+      border-radius: 999px;
+      vertical-align: baseline;
+    }
+    .slot .simpchip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      line-height: 1;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .slot.empty{
+      opacity: 0;
+    }
+
+    .simpchip.chip-x2{ background: var(--chip-green); }
+    .simpchip.chip-x{ background: var(--chip-purple); }
+    .simpchip.chip-const{ background: var(--chip-orange); }
+
+    .controls{
+      margin-top: 16px;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn{
+      border: 3px solid var(--border);
+      background: #fff;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-weight: 900;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+      transition: transform .12s ease, opacity .12s ease;
+      user-select:none;
+      white-space: nowrap;
+    }
+    .btn:hover{ transform: translateY(-2px); }
+    .btn:active{ transform: translateY(0px); }
+
+    .btn.primary{
+      border-color: var(--blue);
+      box-shadow: 0 0 0 5px rgba(37,99,235,0.12), 0 8px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .btn.disabled{
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .clone{
+      position: fixed;
+      z-index: 9999;
+      will-change: transform;
+      pointer-events: none;
+      transform-origin: center;
+    }
+
+    @keyframes pop {
+      0%{ transform: scale(1); }
+      50%{ transform: scale(1.18); }
+      100%{ transform: scale(1); }
+    }
+    .pop{ animation: pop 260ms ease-out; }
+
+    .confetti{
+      position: fixed;
+      z-index: 10000;
+      width: 8px;
+      height: 12px;
+      border-radius: 3px;
+      pointer-events: none;
+      will-change: transform, opacity;
+    }
+
+    @media (max-width: 640px){
+      .title{ font-size: 36px; }
+      .expr{ font-size: 32px; }
+      .term{ font-size: 34px; }
+      .simplified{ font-size: 40px; }
+      .simp-eq{ font-size: 36px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="fallback">
+    Something went wrong while loading the page. Open the browser Console (⌥⌘I on Mac → Console) and paste the error below:
+    <pre id="fallbackMsg"></pre>
+  </div>
+
+  <div id="stage">
+    <div id="scaler">
+      <div class="card">
+        <h1 class="title">Binomial expansion</h1>
+        <div class="expr" id="expr">(x + 8)(x − 4)</div>
+
+        <div class="row">
+          <div class="model-wrap" aria-label="Area model">
+            <div class="top-labels" id="topLabels"></div>
+            <div class="left-labels" id="leftLabels"></div>
+            <div class="gridbox" id="grid"></div>
+          </div>
+
+          <div class="simplified">
+            <div class="simp-label">Simplified =</div>
+            <div class="simp-eq" aria-label="Simplified expression">
+              <span class="slot empty" id="slotX2"></span>
+              <span class="op" id="op1">+</span>
+              <span class="slot empty" id="slotX"></span>
+              <span class="op" id="op2">+</span>
+              <span class="slot empty" id="slotC"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="btn primary" id="newBtn" type="button">New Problem (Space)</button>
+
+          <div style="display:flex; gap:12px; align-items:center;">
+            <button class="btn" id="backBtn" type="button">Back</button>
+            <button class="btn" id="revealBtn" type="button">Reveal (R)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const fallback = document.getElementById("fallback");
+      const fallbackMsg = document.getElementById("fallbackMsg");
+
+      function showError(err){
+        console.error(err);
+        fallback.style.display = "block";
+        fallbackMsg.textContent = (err && err.stack) ? err.stack : String(err);
+      }
+
+      try {
+        const minus = "−";
+
+        function randInt(min, max){ return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function randSignedAllowZero(minAbs, maxAbs){
+          const abs = randInt(minAbs, maxAbs);
+          if (abs === 0) return 0;
+          return Math.random() < 0.5 ? abs : -abs;
+        }
+
+        function fmtSigned(n){
+          if(n === 0) return "0";
+          return n < 0 ? `${minus}${Math.abs(n)}` : `${n}`;
+        }
+
+        function fmtBinomial(a){
+          if(a === 0) return "x";
+          return `x ${a < 0 ? minus : "+"} ${Math.abs(a)}`;
+        }
+
+        function fmtExpression(a, b){
+          const left = fmtBinomial(a);
+          const right = fmtBinomial(b);
+          const L = left === "x" ? "x" : `(${left})`;
+          const R = right === "x" ? "x" : `(${right})`;
+          return `${L}${R}`;
+        }
+
+        function termX2(){ return "x²"; }
+        function termCoeffX(k){
+          if(k === 0) return "0";
+          if(k === 1) return "x";
+          if(k === -1) return `${minus}x`;
+          return `${k < 0 ? minus : ""}${Math.abs(k)}x`;
+        }
+        function termConst(k){
+          return k < 0 ? `${minus}${Math.abs(k)}` : `${k}`;
+        }
+
+        function multiplyTerm(rVal, cVal){
+          const rIsX = (rVal === "x");
+          const cIsX = (cVal === "x");
+          if(rIsX && cIsX) return termX2();
+          if(rIsX && !cIsX) return termCoeffX(cVal);
+          if(!rIsX && cIsX) return termCoeffX(rVal);
+          return termConst(rVal * cVal);
+        }
+
+        function partsFor(a, b){
+          const rows = [{ val:"x", label:"x", cls:"lbl-a" }];
+          const cols = [{ val:"x", label:"x", cls:"lbl-x" }];
+          if(a !== 0) rows.push({ val:a, label: fmtSigned(a), cls:"lbl-num" });
+          if(b !== 0) cols.push({ val:b, label: fmtSigned(b), cls:"lbl-b" });
+          return { rows, cols };
+        }
+
+        function weightFor(part){
+          if(part.val === "x") return 12;
+          const w = Math.abs(part.val);
+          return Math.max(2, Math.min(10, w));
+        }
+
+        function chipClassFor(rVal, cVal){
+          const rIsX = (rVal === "x");
+          const cIsX = (cVal === "x");
+          if(rIsX && cIsX) return "chip-x2";
+          if(rIsX && !cIsX) return "chip-x";
+          if(!rIsX && cIsX) return "chip-x";
+          return "chip-const";
+        }
+
+        // DOM
+        const gridEl = document.getElementById("grid");
+        const topLabelsEl = document.getElementById("topLabels");
+        const leftLabelsEl = document.getElementById("leftLabels");
+        const exprEl = document.getElementById("expr");
+
+        const newBtn = document.getElementById("newBtn");
+        const revealBtn = document.getElementById("revealBtn");
+        const backBtn = document.getElementById("backBtn");
+
+        const slotX2 = document.getElementById("slotX2");
+        const slotX  = document.getElementById("slotX");
+        const slotC  = document.getElementById("slotC");
+        const op1 = document.getElementById("op1");
+        const op2 = document.getElementById("op2");
+
+        let isAnimating = false;
+        let state = { a: 8, b: -4, revealStage: 0, cellCount: 4, cellEls: [] };
+
+        function resetSimplified(){
+          slotX2.className = "slot empty"; slotX2.innerHTML = "";
+          slotX.className  = "slot empty"; slotX.innerHTML  = "";
+          slotC.className  = "slot empty"; slotC.innerHTML  = "";
+          op1.classList.remove("show");
+          op2.classList.remove("show");
+          op1.textContent = "+";
+          op2.textContent = "+";
+        }
+
+        function setOpSigns(a, b){
+          const A = a + b;
+          const B = a * b;
+          op1.textContent = (A < 0 ? minus : "+");
+          op2.textContent = (B < 0 ? minus : "+");
+        }
+
+        function maybeShowOps(){
+          const show1 = !slotX2.classList.contains("empty") && !slotX.classList.contains("empty");
+          op1.classList.toggle("show", show1);
+
+          const show2 = !slotC.classList.contains("empty") &&
+                        (!slotX.classList.contains("empty") || !slotX2.classList.contains("empty"));
+          op2.classList.toggle("show", show2);
+        }
+
+        function renderLabels(rows, cols){
+          topLabelsEl.innerHTML = "";
+          leftLabelsEl.innerHTML = "";
+
+          topLabelsEl.style.gridTemplateColumns = cols.map(weightFor).map(w => `${w}fr`).join(" ");
+          leftLabelsEl.style.gridTemplateRows = rows.map(weightFor).map(w => `${w}fr`).join(" ");
+
+          cols.forEach(p=>{
+            const d = document.createElement("div");
+            d.className = `axis-label ${p.cls}`;
+            d.textContent = p.label;
+            topLabelsEl.appendChild(d);
+          });
+
+          rows.forEach(p=>{
+            const d = document.createElement("div");
+            d.className = `axis-label ${p.cls}`;
+            d.textContent = p.label;
+            leftLabelsEl.appendChild(d);
+          });
+        }
+
+        function buildGrid(a, b){
+          const { rows, cols } = partsFor(a, b);
+          exprEl.textContent = fmtExpression(a, b);
+
+          gridEl.innerHTML = "";
+          gridEl.style.gridTemplateRows = rows.map(weightFor).map(w => `${w}fr`).join(" ");
+          gridEl.style.gridTemplateColumns = cols.map(weightFor).map(w => `${w}fr`).join(" ");
+          renderLabels(rows, cols);
+
+          state.cellEls = [];
+          const totalCells = rows.length * cols.length;
+          state.cellCount = totalCells;
+          const showK = Math.max(0, Math.min(state.revealStage, totalCells));
+
+          let idx = 0;
+          for(let r=0;r<rows.length;r++){
+            for(let c=0;c<cols.length;c++){
+              const cell = document.createElement("div");
+              cell.className = "cell";
+
+              const chip = document.createElement("span");
+              const cls = chipClassFor(rows[r].val, cols[c].val);
+              chip.className = `term ${cls} ${(idx < showK) ? "" : "hidden"}`.trim();
+              chip.textContent = multiplyTerm(rows[r].val, cols[c].val);
+              chip.dataset.kind = cls;
+
+              cell.appendChild(chip);
+              gridEl.appendChild(cell);
+              state.cellEls.push(chip);
+              idx++;
+            }
+          }
+
+          setOpSigns(a, b);
+          maybeShowOps();
+        }
+
+        function fitToStage(){
+          const stage = document.getElementById("stage");
+          const scaler = document.getElementById("scaler");
+          if(!stage || !scaler) return;
+
+          scaler.style.transform = "scale(1)";
+
+          const pad = 8;
+          const stageRect = stage.getBoundingClientRect();
+          const targetW = stageRect.width - pad*2;
+          const targetH = stageRect.height - pad*2;
+
+          const contentRect = scaler.getBoundingClientRect();
+          if(contentRect.width === 0 || contentRect.height === 0) return;
+
+          const scaleW = targetW / contentRect.width;
+          const scaleH = targetH / contentRect.height;
+
+          const scale = Math.max(0.62, Math.min(1.12, Math.min(scaleW, scaleH)));
+          scaler.style.transform = `scale(${scale})`;
+        }
+
+        function rectCenter(r){ return { x: r.left + r.width/2, y: r.top + r.height/2 }; }
+
+        function makeCloneFrom(el){
+          const r = el.getBoundingClientRect();
+          const clone = el.cloneNode(true);
+          clone.classList.remove("hidden");
+          clone.classList.add("clone");
+          clone.style.left = `${r.left}px`;
+          clone.style.top = `${r.top}px`;
+          clone.style.width = `${r.width}px`;
+          clone.style.height = `${r.height}px`;
+          clone.style.margin = "0";
+          clone.style.transform = "translate(0px, 0px)";
+          document.body.appendChild(clone);
+          return clone;
+        }
+
+        function animateCloneTo(clone, targetEl, { duration=520, easing="cubic-bezier(0.2, 0.9, 0.25, 1.0)" } = {}){
+          return new Promise((resolve) => {
+            const a = clone.getBoundingClientRect();
+            const b = targetEl.getBoundingClientRect();
+            const from = rectCenter(a);
+            const to = rectCenter(b);
+
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+
+            clone.style.transition = `transform ${duration}ms ${easing}`;
+            requestAnimationFrame(() => {
+              clone.style.transform = `translate(${dx}px, ${dy}px)`;
+            });
+
+            const done = () => resolve();
+            clone.addEventListener("transitionend", done, { once:true });
+            setTimeout(done, duration + 80);
+          });
+        }
+
+        function setSlot(slotEl, cls, text){
+          slotEl.className = "slot";
+          slotEl.innerHTML = `<span class="simpchip ${cls}">${text}</span>`;
+          maybeShowOps();
+        }
+
+        function popSlot(slotEl){
+          const chip = slotEl.querySelector(".simpchip");
+          if(!chip) return;
+          chip.classList.remove("pop");
+          void chip.offsetWidth;
+          chip.classList.add("pop");
+        }
+
+        function confettiBurst(targetEl){
+          const r = targetEl.getBoundingClientRect();
+          const origin = rectCenter(r);
+          const count = 26;
+          const colors = ["#a855f7","#7c3aed","#c4b5fd","#e9d5ff","#2563eb","#93c5fd"];
+
+          for(let i=0;i<count;i++){
+            const p = document.createElement("div");
+            p.className = "confetti";
+            p.style.background = colors[Math.floor(Math.random()*colors.length)];
+            p.style.left = `${origin.x}px`;
+            p.style.top  = `${origin.y}px`;
+            document.body.appendChild(p);
+
+            const angle = (Math.random()*Math.PI*2);
+            const speed = 80 + Math.random()*160;
+            const dx = Math.cos(angle)*speed;
+            const dy = Math.sin(angle)*speed - (120 + Math.random()*120);
+            const rot = (Math.random()*720 - 360);
+            const dur = 520 + Math.random()*260;
+
+            // WAAPI supported in Chrome; safe guard anyway:
+            if (typeof p.animate === "function") {
+              const anim = p.animate([
+                { transform:`translate(0px,0px) rotate(0deg)`, opacity: 1 },
+                { transform:`translate(${dx}px,${dy}px) rotate(${rot}deg)`, opacity: 1, offset: 0.7 },
+                { transform:`translate(${dx*1.15}px,${dy*1.15 + 180}px) rotate(${rot*1.4}deg)`, opacity: 0 }
+              ], { duration: dur, easing: "cubic-bezier(0.2, 0.85, 0.2, 1)", fill: "forwards" });
+
+              anim.onfinish = () => p.remove();
+            } else {
+              // fallback: just remove quickly
+              setTimeout(()=>p.remove(), dur);
+            }
+          }
+        }
+
+        function getTopLeftX2Chip(){
+          return state.cellEls.find(el => el.dataset.kind === "chip-x2") || state.cellEls[0];
+        }
+        function getXTermChips(){
+          return state.cellEls.filter(el => el.dataset.kind === "chip-x");
+        }
+        function getConstChip(){
+          return state.cellEls.find(el => el.dataset.kind === "chip-const") || null;
+        }
+
+        async function doSimplifiedStep(step){
+          const a = state.a, b = state.b;
+
+          if(step === 1){
+            const src = getTopLeftX2Chip();
+            const clone = makeCloneFrom(src);
+            isAnimating = true;
+            revealBtn.classList.add("disabled");
+            newBtn.classList.add("disabled");
+
+            await animateCloneTo(clone, slotX2);
+            clone.remove();
+            setSlot(slotX2, "chip-x2", "x²");
+
+            isAnimating = false;
+            revealBtn.classList.remove("disabled");
+            newBtn.classList.remove("disabled");
+            fitToStage();
+            return;
+          }
+
+          if(step === 2){
+            const xchips = getXTermChips();
+            const A = a + b;
+
+            isAnimating = true;
+            revealBtn.classList.add("disabled");
+            newBtn.classList.add("disabled");
+
+            if(xchips.length === 1){
+              const clone = makeCloneFrom(xchips[0]);
+              await animateCloneTo(clone, slotX);
+              clone.remove();
+
+              if(A !== 0){
+                let inner = termCoeffX(A);
+                if(op1.textContent === minus && inner.startsWith(minus)) inner = inner.slice(1);
+                setSlot(slotX, "chip-x", inner);
+              } else {
+                slotX.className = "slot empty"; slotX.innerHTML = "";
+                maybeShowOps();
+              }
+
+            } else if(xchips.length >= 2){
+              const c1 = makeCloneFrom(xchips[0]);
+              const c2 = makeCloneFrom(xchips[1]);
+
+              await Promise.all([
+                animateCloneTo(c1, slotX),
+                animateCloneTo(c2, slotX)
+              ]);
+
+              c1.remove(); c2.remove();
+
+              if(A !== 0){
+                let inner = termCoeffX(A);
+                if(op1.textContent === minus && inner.startsWith(minus)) inner = inner.slice(1);
+                setSlot(slotX, "chip-x", inner);
+                popSlot(slotX);
+                confettiBurst(slotX);
+              } else {
+                slotX.className = "slot empty"; slotX.innerHTML = "";
+                maybeShowOps();
+              }
+            }
+
+            isAnimating = false;
+            revealBtn.classList.remove("disabled");
+            newBtn.classList.remove("disabled");
+            fitToStage();
+            return;
+          }
+
+          if(step === 3){
+            const src = getConstChip();
+            const B = a * b;
+
+            isAnimating = true;
+            revealBtn.classList.add("disabled");
+            newBtn.classList.add("disabled");
+
+            if(src){
+              const clone = makeCloneFrom(src);
+              await animateCloneTo(clone, slotC);
+              clone.remove();
+            }
+
+            if(B !== 0){
+              let inner = termConst(B);
+              if(op2.textContent === minus && inner.startsWith(minus)) inner = inner.slice(1);
+              setSlot(slotC, "chip-const", inner);
+            } else {
+              slotC.className = "slot empty"; slotC.innerHTML = "";
+              maybeShowOps();
+            }
+
+            isAnimating = false;
+            revealBtn.classList.remove("disabled");
+            newBtn.classList.remove("disabled");
+            fitToStage();
+            return;
+          }
+        }
+
+        async function revealStep(){
+          if(isAnimating) return;
+
+          const totalCells = state.cellCount;
+          const stage = state.revealStage;
+
+          if(stage < totalCells){
+            state.revealStage++;
+            buildGrid(state.a, state.b);
+            fitToStage();
+            return;
+          }
+
+          const stepIndex = stage - totalCells + 1; // 1..3
+          if(stepIndex >= 1 && stepIndex <= 3){
+            state.revealStage++;
+            await doSimplifiedStep(stepIndex);
+          }
+        }
+
+        function newProblem(){
+          let a = randSignedAllowZero(0, 9);
+          let b = randSignedAllowZero(0, 9);
+          if(a === 0 && b === 0){
+            a = randSignedAllowZero(1, 6);
+            b = -a;
+          }
+
+          state.a = a;
+          state.b = b;
+          state.revealStage = 0;
+
+          resetSimplified();
+          buildGrid(a, b);
+          fitToStage();
+        }
+
+        // events
+        newBtn.addEventListener("click", newProblem);
+        revealBtn.addEventListener("click", revealStep);
+        backBtn.addEventListener("click", ()=> window.location.href = "index.html");
+
+        document.addEventListener("keydown", (e)=>{
+          if(e.code === "Space"){
+            e.preventDefault();
+            newProblem();
+          }
+          if(e.key.toLowerCase() === "r"){
+            revealStep();
+          }
+        });
+
+        window.addEventListener("resize", ()=>fitToStage());
+
+        // init
+        resetSimplified();
+        buildGrid(state.a, state.b);
+        fitToStage();
+        setTimeout(fitToStage, 80);
+        setTimeout(fitToStage, 220);
+
+      } catch (err) {
+        showError(err);
+      }
+    })();
+  </script>
+</body>
+</html>
